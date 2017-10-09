@@ -118,7 +118,6 @@ class RUMCell(RNNCell):
 				 activation_tar = None,
 				 activation_emb = None, 
 				 reuse = None,
-				 kernel_initializer = None,
 				 bias_initializer = None, 
 				 T_norm = None, 
 				 eps = 1e-12,
@@ -147,7 +146,6 @@ class RUMCell(RNNCell):
 		self._activation_tar = activation_tar or sigmoid
 		self._activation_emb = activation_emb or tf.identity 
 		self._T_norm = T_norm 
-		self._kernel_initializer = kernel_initializer
 		self._bias_initializer = bias_initializer
 		self._T_norm = T_norm
 		self._eps = eps 
@@ -175,7 +173,7 @@ class RUMCell(RNNCell):
 
 			W_xh = tf.get_variable("W_xh", [x_size, 2 * self._hidden_size], initializer = w_init)
 			W_hh = tf.get_variable("W_hh", [self._hidden_size, 2 * self._hidden_size], initializer = h_init)
-			bias = tf.get_variable("bias_rum", [2 * self._hidden_size], initializer = b_init)
+			bias = tf.get_variable("bias_ker", [2 * self._hidden_size], initializer = b_init)
 			
 			xh = tf.matmul(inputs, W_xh)
 			hh = tf.matmul(state, W_hh)
@@ -191,7 +189,8 @@ class RUMCell(RNNCell):
 		with vs.variable_scope("candidate"):
 			W_xh_emb = tf.get_variable("W_xh_emb", [x_size, self._hidden_size], initializer = w_init)
 			x_emb = self._activation_emb(tf.matmul(inputs, W_xh_emb))
-			state_new = rotate(x_emb, r, state)
+			bias_emb = tf.get_variable("bias_emb", self._hidden_size, initializer = self._bias_initializer)
+			state_new = rotate(x_emb + bias_emb, r, state)
 			c = self._activation(aux.layer_norm(x_emb + state_new, "ln_c"))
 
 		new_h = u * state + (1 - u) * c
