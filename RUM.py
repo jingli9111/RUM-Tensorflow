@@ -191,7 +191,7 @@ class RUMCell(RNNCell):
 			x_emb = self._activation_emb(tf.matmul(inputs, W_xh_emb))
 			bias_emb = tf.get_variable("bias_emb", self._hidden_size, initializer = self._bias_initializer)
 			state_new = rotate(x_emb + bias_emb, r, state)
-			c = self._activation(aux.layer_norm(x_emb + state_new, "ln_c"))
+			c = self._activation_tmp(aux.layer_norm(x_emb + state_new, "ln_c"))
 
 		new_h = u * state + (1 - u) * c
 		if self._T_norm != None: 
