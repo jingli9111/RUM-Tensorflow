@@ -1,20 +1,20 @@
-python babi_task.py RUM 1 -H 128
-python babi_task.py RUM 2 -H 128
-python babi_task.py RUM 3 -H 128
-python babi_task.py RUM 4 -H 128
-python babi_task.py RUM 5 -H 128
-python babi_task.py RUM 6 -H 128
-python babi_task.py RUM 7 -H 128
-python babi_task.py RUM 8 -H 128
-python babi_task.py RUM 9 -H 128
-python babi_task.py RUM 10 -H 128
-python babi_task.py RUM 11 -H 128
-python babi_task.py RUM 12 -H 128
-python babi_task.py RUM 13 -H 128
-python babi_task.py RUM 14 -H 128
-python babi_task.py RUM 15 -H 128
-python babi_task.py RUM 16 -H 128
-python babi_task.py RUM 17 -H 128
-python babi_task.py RUM 18 -H 128
-python babi_task.py RUM 19 -H 128
-python babi_task.py RUM 20 -H 128
+python babi_task.py RUM 1 -H 128 --norm 1
+python babi_task.py RUM 2 -H 128 --norm 1
+python babi_task.py RUM 3 -H 128 --norm 1
+python babi_task.py RUM 4 -H 128 --norm 1
+python babi_task.py RUM 5 -H 128 --norm 1
+python babi_task.py RUM 6 -H 128 --norm 1
+python babi_task.py RUM 7 -H 128 --norm 1
+python babi_task.py RUM 8 -H 128 --norm 1
+python babi_task.py RUM 9 -H 128 --norm 1
+python babi_task.py RUM 10 -H 128 --norm 1
+python babi_task.py RUM 11 -H 128 --norm 1
+python babi_task.py RUM 12 -H 128 --norm 1
+python babi_task.py RUM 13 -H 128 --norm 1
+python babi_task.py RUM 14 -H 128 --norm 1
+python babi_task.py RUM 15 -H 128 --norm 1
+python babi_task.py RUM 16 -H 128 --norm 1
+python babi_task.py RUM 17 -H 128 --norm 1
+python babi_task.py RUM 18 -H 128 --norm 1
+python babi_task.py RUM 19 -H 128 --norm 1
+python babi_task.py RUM 20 -H 128 --norm 1
