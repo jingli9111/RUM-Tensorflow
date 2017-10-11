@@ -29,10 +29,21 @@ def recall_data(T, n_data):
 	input1 = np.random.randint(1, high=37, size=(n_data, T))
 	input2 = np.zeros((n_data, 2))
 	ind = np.random.randint(0, high=T-1, size=(n_data))
-	input3 = np.array([[input1[i, ind[i]]] for i in range(n_data)])
-	x = np.concatenate((input1, input2, input3), axis=1).astype('int32')
-	y = np.array([input1[i, ind[i] + 1] for i in range(n_data)])
+	input3 = np.array([[input1[i][ind[i]]] for i in range(n_data)])
+	y = []
+	for i in range(n_data):
+		for j in range(T-1):
+			if input1[i][j] == input1[i][ind[i]]:
+				# print(input1[i][j+1])
+				y.append(input1[i][j+1])
+				break
 
+
+	x = np.concatenate((input1, input2, input3), axis=1).astype('int32')
+	# y = np.array([input1[i, ind[i] + 1] for i in range(n_data)])
+	y = np.array(y)
+
+	print(x.shape, y.shape)
 	return x, y
 
 def next_batch(data_x, data_y, step, batch_size):
@@ -70,7 +81,7 @@ def main(
 	n_output = 37
 	n_train = 100000
 	n_valid = 10000
-	n_test = 10000
+	n_test = 20000
 
 	n_steps = T+3
 	n_classes = 37
@@ -188,6 +199,7 @@ def main(
 
 		while step < n_iter:
 			batch_x, batch_y = next_batch(train_x, train_y, step, n_batch)
+
 			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
 			acc = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
@@ -241,7 +253,7 @@ if __name__=="__main__":
 		description="recall Task")
 	parser.add_argument("model", default='LSTM', help='Model name: LSTM, LSTSM, LSTRM, LSTUM, EURNN, GRU, GRRU, GORU, GRRU')
 	parser.add_argument('-T', type=int, default=30, help='Information sequence length')
-	parser.add_argument('--n_iter', '-I', type=int, default=10000, help='training iteration number')
+	parser.add_argument('--n_iter', '-I', type=int, default=500000, help='training iteration number')
 	parser.add_argument('--n_batch', '-B', type=int, default=128, help='batch size')
 	parser.add_argument('--n_hidden', '-H', type=int, default=50, help='hidden layer size')
 	parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EURNN, default value is 2')
