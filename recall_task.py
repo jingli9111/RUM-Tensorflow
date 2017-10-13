@@ -26,21 +26,18 @@ def random_variable(shape, dev):
   	return tf.Variable(initial)
 
 def recall_data(T, n_data):
-	input1 = np.random.randint(1, high=37, size=(n_data, T))
+	input1 = []
+	for i in range(n_data):
+		x0 = np.arange(1, 63)
+		np.random.shuffle(x0)
+		input1.append(x0[:T])
+	input1 = np.array(input1)
 	input2 = np.zeros((n_data, 2))
 	ind = np.random.randint(0, high=T-1, size=(n_data))
 	input3 = np.array([[input1[i][ind[i]]] for i in range(n_data)])
-	y = []
-	for i in range(n_data):
-		for j in range(T-1):
-			if input1[i][j] == input1[i][ind[i]]:
-				# print(input1[i][j+1])
-				y.append(input1[i][j+1])
-				break
-
 
 	x = np.concatenate((input1, input2, input3), axis=1).astype('int32')
-	# y = np.array([input1[i, ind[i] + 1] for i in range(n_data)])
+	y = np.array([input1[i, ind[i] + 1] for i in range(n_data)])
 	y = np.array(y)
 
 	print(x.shape, y.shape)
@@ -77,14 +74,14 @@ def main(
 	decay = float(decay)
 
 	# --- Set data params ----------------
-	n_input = 37
-	n_output = 37
+	n_input = 63
+	n_output = 63
 	n_train = 100000
 	n_valid = 10000
 	n_test = 20000
 
 	n_steps = T+3
-	n_classes = 37
+	n_classes = 63
 
 
 	# --- Create graph and compute gradients ----------------------
