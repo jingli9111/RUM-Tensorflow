@@ -171,7 +171,7 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
 #                                             QUERY_HIDDEN_SIZE))
 
 
-def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT):
+def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, norm, grid_name):
 
 
 
@@ -330,7 +330,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT):
         elif model == "GRU":
             cell2 = GRUCell(n_hidden)
         elif model == "RUM":
-            cell2 = RUMCell(n_hidden)
+            cell2 = RUMCell(n_hidden, T_norm = norm)
         elif model == "RNN":
             cell2 = BasicRNNCell(n_hidden)
         elif model == "EUNN":
@@ -482,6 +482,8 @@ if __name__=="__main__":
     parser.add_argument('--FFT', '-F', type=str, default="True", help='FFT style, default is False')
     # parser.add_argument('--learning_rate', '-R', default=0.001, type=str)
     # parser.add_argument('--decay', '-D', default=0.9, type=str)
+    parser.add_argument('--norm', '-norm', default=None, type=float)    
+    parser.add_argument('--grid_name', '-GN', default = None, type = str, help = 'specify folder to save to')   
 
     args = parser.parse_args()
     dicts = vars(args)
@@ -504,6 +506,8 @@ if __name__=="__main__":
                 'FFT': dicts['FFT'],
                 # 'learning_rate': dicts['learning_rate'],
                 # 'decay': dicts['decay'],
+                'norm': dicts['norm'],
+                'grid_name': dicts['grid_name']
             }
 
     main(**kwargs)
