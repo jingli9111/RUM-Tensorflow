@@ -232,7 +232,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, no
     test_x, test_q, test_y, test_x_len, test_q_len = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
 
     n_data = len(train_x)
-    n_val = int(0.2 * n_data)
+    n_val = int(0.1 * n_data)
  
     val_x = train_x[-n_val:]
     val_q = train_q[-n_val:]
@@ -267,58 +267,18 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, no
     # encoded_sentence = layers.Embedding(vocab_size, EMBED_HIDDEN_SIZE)(sentence)
     embed_init_val = np.sqrt(6.)/np.sqrt(vocab_size)
     embed = tf.get_variable('Embedding', [vocab_size, n_embed] ,initializer = tf.random_normal_initializer(-embed_init_val, embed_init_val), dtype=tf.float32)
+    
     encoded_sentence = tf.nn.embedding_lookup(embed, sentence)
 
     # encoded_sentence = layers.Dropout(0.3)(encoded_sentence)
-    encoded_sentence = tf.nn.dropout(encoded_sentence, 0.3)
-
-    # with tf.variable_scope('s'):
-    #     if model == "LSTM":
-    #         cell0 = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
-    #     elif model == "GRU":
-    #         cell0 = GRUCell(n_hidden)
-    #     elif model == "RNN":
-    #         cell0 = BasicRNNCell(n_hidden)
-    #     elif model == "EUNN":
-    #         cell0 = EUNNCell(n_hidden, capacity, FFT, comp)
-    #     elif model == "GORU":
-    #         cell0 = GORUCell(n_hidden, capacity, FFT)
-
-    #     encoded_sentence, _ = tf.nn.dynamic_rnn(cell0, encoded_sentence, dtype=tf.float32)
-
-
+    # encoded_sentence = tf.nn.dropout(encoded_sentence, drop)
 
     # question = layers.Input(shape=(query_maxlen,), dtype='int32')
     question = tf.placeholder("int32", [None, query_maxlen])
     # encoded_question = layers.Embedding(vocab_size, EMBED_HIDDEN_SIZE)(question)
     encoded_question = tf.nn.embedding_lookup(embed, question)
     # encoded_question = layers.Dropout(0.3)(encoded_question)
-    encoded_question = tf.nn.dropout(encoded_question, 0.3)
- 
-    # encoded_question = RNN(EMBED_HIDDEN_SIZE)(encoded_question)
-    # with tf.variable_scope('q'):
-    #     if model == "LSTM":
-    #         cell1 = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
-    #     elif model == "GRU":
-    #         cell1 = GRUCell(n_hidden)
-    #     elif model == "RNN":
-    #         cell1 = BasicRNNCell(n_hidden)
-    #     elif model == "EUNN":
-    #         cell1 = EUNNCell(n_hidden, capacity, FFT, comp)
-    #     elif model == "GORU":
-    #         cell1 = GORUCell(n_hidden, capacity, FFT)
-
-    #     encoded_question, _ = tf.nn.dynamic_rnn(cell1, encoded_question, dtype=tf.float32)
-
-
-    # encoded_question = layers.RepeatVector(story_maxlen)(encoded_question)
-    # ????
-    # W = tf.get_variable("w", [n_hidden, n_embed], dtype=tf.float32)
-    # encoded_question = tf.reshape(encoded_question, [-1, n_hidden])
-    # encoded_question = tf.matmul(encoded_question, W)
-    # encoded_question = tf.reshape(encoded_question, [-1, query_maxlen, n_embed])
-
-
+    # encoded_question = tf.nn.dropout(encoded_question, drop)
     # merged = layers.add([encoded_sentence, encoded_question])
     merged = tf.concat([encoded_sentence, encoded_question], axis=1)
     print(encoded_sentence, encoded_question, merged)
@@ -326,27 +286,26 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, no
     with tf.variable_scope('m'):
     # merged = RNN(EMBED_HIDDEN_SIZE)(merged)
         if model == "LSTM":
-            cell2 = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
+            cell = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
         elif model == "GRU":
-            cell2 = GRUCell(n_hidden)
+            cell = GRUCell(n_hidden)
         elif model == "RUM":
-            cell2 = RUMCell(n_hidden, T_norm = norm)
+            cell = RUMCell(n_hidden, T_norm = norm)
         elif model == "RNN":
-            cell2 = BasicRNNCell(n_hidden)
+            cell = BasicRNNCell(n_hidden)
         elif model == "EUNN":
-            cell2 = EUNNCell(n_hidden, capacity, FFT, comp)
+            cell = EUNNCell(n_hidden, capacity, FFT, comp)
         elif model == "GORU":
-            cell2 = GORUCell(n_hidden, capacity, FFT)
+            cell = GORUCell(n_hidden, capacity, FFT)
 
-        merged, _ = tf.nn.dynamic_rnn(cell2, merged, dtype=tf.float32)
+        merged, _ = tf.nn.dynamic_rnn(cell, merged, dtype=tf.float32)
 
 
 
 
 
     # merged = layers.Dropout(0.3)(merged)
-    merged = tf.nn.dropout(merged, 0.3)
-    # preds = layers.Dense(vocab_size, activation='softmax')(merged)
+    # merged = tf.nn.dropout(merged, drop)
 
     # --- Hidden Layer to Output ----------------------
     V_init_val = np.sqrt(6.)/np.sqrt(n_output + n_input)
@@ -371,26 +330,12 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, no
 
 
     # --- Initialization ----------------------
-    optimizer = tf.train.RMSPropOptimizer(learning_rate=0.001, decay=0.9).minimize(cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(cost)
     init = tf.global_variables_initializer()
 
     for i in tf.global_variables():
         print(i.name)
-
-    # model = Model([sentence, question], preds)
-    # model.compile(optimizer='adam',
-    #            loss='categorical_crossentropy',
-    #            metrics=['accuracy'])
-
-    # print('Training')
-    # model.fit([x, xq], y,
-    #         batch_size=BATCH_SIZE,
-    #         epochs=EPOCHS,
-    #         validation_split=0.05)
-    # loss, acc = model.evaluate([tx, txq], ty,
-    #                     batch_size=BATCH_SIZE)
-    # print('Test loss / test accuracy = {:.4f} / {:.4f}'.format(loss, acc))
-    # --- save result ----------------------
+   # --- save result ----------------------
     filename = "./output/babi/" + str(qid) + "/" + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
         
     filename = filename + ".txt"
@@ -473,8 +418,8 @@ if __name__=="__main__":
         description="bAbI Task")
     parser.add_argument("model", default='LSTM', help='Model name: LSTM, EUNN, GRU, GORU')
     parser.add_argument('qid', type=int, default=20, help='Test set')
-    parser.add_argument('--n_iter', '-I', type=int, default=5000, help='training iteration number')
-    parser.add_argument('--n_batch', '-B', type=int, default=20, help='batch size')
+    parser.add_argument('--n_iter', '-I', type=int, default=10000, help='training iteration number')
+    parser.add_argument('--n_batch', '-B', type=int, default=32, help='batch size')
     parser.add_argument('--n_hidden', '-H', type=int, default=128, help='hidden layer size')
     parser.add_argument('--n_embed', '-E', type=int, default=64, help='embedding size')
     parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EUNN, default value is 2')
