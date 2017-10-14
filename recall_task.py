@@ -26,21 +26,27 @@ def random_variable(shape, dev):
   	return tf.Variable(initial)
 
 def recall_data(T, n_data):
+	# character
 	input1 = []
 	for i in range(n_data):
-		x0 = np.arange(1, 63)
+		x0 = np.arange(1, 27)
 		np.random.shuffle(x0)
-		input1.append(x0[:T])
+		input1.append(x0[:T//2])
 	input1 = np.array(input1)
-	input2 = np.zeros((n_data, 2))
-	ind = np.random.randint(0, high=T-1, size=(n_data))
-	input3 = np.array([[input1[i][ind[i]]] for i in range(n_data)])
+	# number
+	input2 = np.random.randint(27, high=37, size=(n_data, T//2))
 
-	x = np.concatenate((input1, input2, input3), axis=1).astype('int32')
-	y = np.array([input1[i, ind[i] + 1] for i in range(n_data)])
-	y = np.array(y)
+	#question mark
+	input3 = np.zeros((n_data, 2))
+	seq = np.stack([input1, input2], axis=2)
+	seq = np.reshape(seq, [n_data, T])
+	# answer
+	ind = np.random.randint(0, high=T//2, size=(n_data))
+	input4 = np.array([[input1[i][ind[i]]] for i in range(n_data)])
 
-	print(x.shape, y.shape)
+	x = np.concatenate((seq, input3, input4), axis=1).astype('int32')
+	y = np.array([input2[i][ind[i]] for i in range(n_data)]) - 27
+
 	return x, y
 
 def next_batch(data_x, data_y, step, batch_size):
@@ -74,14 +80,14 @@ def main(
 	decay = float(decay)
 
 	# --- Set data params ----------------
-	n_input = 63
-	n_output = 63
+	n_input = 37
+	n_output = 10
 	n_train = 100000
 	n_valid = 10000
 	n_test = 20000
 
 	n_steps = T+3
-	n_classes = 63
+	n_classes = 10
 
 
 	# --- Create graph and compute gradients ----------------------
@@ -196,6 +202,7 @@ def main(
 
 		while step < n_iter:
 			batch_x, batch_y = next_batch(train_x, train_y, step, n_batch)
+			print(batch_x[0], batch_y[0])
 
 			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
