@@ -218,8 +218,8 @@ def main(
 			accs.append(acc)
 			step += 1
 			if step % 200 == 199: 
-				acc = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
-				loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y})
+				acc = sess.run(accuracy, feed_dict={x: val_x, y: val_y})
+				loss = sess.run(cost, feed_dict={x: val_x, y: val_y})
 
 				print("Validation Loss= " + \
 				  "{:.6f}".format(loss) + ", Validation Accuracy= " + \
