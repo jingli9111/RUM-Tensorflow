@@ -202,7 +202,6 @@ def main(
 
 		while step < n_iter:
 			batch_x, batch_y = next_batch(train_x, train_y, step, n_batch)
-			print(batch_x[0], batch_y[0])
 
 			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
