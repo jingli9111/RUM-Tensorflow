@@ -146,40 +146,54 @@ def main(
 	print("###\n")
 
 	# --- save result ----------------------
-	filename = "./output/recall/"
-	if grid_name != None: 
-		filename += grid_name + "/" 
-	filename += "T=" + str(T) + "/"
-	research_filename = filename + "researchModels" + "/" + model  + "_N=" + str(n_hidden) + "_lambda=" + str(learning_rate) + "_decay=" + str(decay) + "/"
-	filename += model  + "_N=" + str(n_hidden) + "_lambda=" + str(learning_rate) + "_decay=" + str(decay)
-	if norm is not None: 
-		filename += "_norm=" + str(norm)
-	filename = filename + ".txt"
+	# filename = "./output/recall/"
+	# if grid_name != None: 
+	# 	filename += grid_name + "/" 
+	# filename += "T=" + str(T) + "/"
+	# research_filename = filename + "researchModels" + "/" + model  + "_N=" + str(n_hidden) + "_lambda=" + str(learning_rate) + "_decay=" + str(decay) + "/"
+	# filename += model  + "_N=" + str(n_hidden) + "_lambda=" + str(learning_rate) + "_decay=" + str(decay)
+	# if norm is not None: 
+	# 	filename += "_norm=" + str(norm)
+	# filename = filename + ".txt"
 
+	# if not os.path.exists(os.path.dirname(filename)):
+	# 	try:
+	# 		os.makedirs(os.path.dirname(filename))
+	# 	except OSError as exc: # Guard against race condition
+	# 		if exc.errno != errno.EEXIST:
+	# 			raise
+	# if not os.path.exists(os.path.dirname(research_filename)):
+	# 	try:
+	# 		os.makedirs(os.path.dirname(research_filename))
+	# 	except OSError as exc:
+	# 		if exc.errno != errno.EEXIST:
+	# 			raise
+	# if not os.path.exists(os.path.dirname(research_filename + "/modelCheckpoint/")):
+	# 	try:
+	# 		os.makedirs(os.path.dirname(research_filename + "/modelCheckpoint/"))
+	# 	except OSError as exc:
+	# 		if exc.errno != errno.EEXIST:
+	# 			raise
+	# f = open(filename, 'w')
+	# f.write("########\n\n")
+	# f.write("## \tModel: %s with N=%d"%(model, n_hidden))
+	# f.write("\n\n")
+	# f.write("########\n\n")
+	filename = "./output/recall/T=" + str(T) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
+	filename = filename + "_h=" + str(n_hidden)
+	filename = filename + "_lr=" + str(learning_rate)
+	filename = filename + "_norm=" + str(norm)
+	filename = filename + ".txt"
 	if not os.path.exists(os.path.dirname(filename)):
 		try:
 			os.makedirs(os.path.dirname(filename))
 		except OSError as exc: # Guard against race condition
 			if exc.errno != errno.EEXIST:
 				raise
-	if not os.path.exists(os.path.dirname(research_filename)):
-		try:
-			os.makedirs(os.path.dirname(research_filename))
-		except OSError as exc:
-			if exc.errno != errno.EEXIST:
-				raise
-	if not os.path.exists(os.path.dirname(research_filename + "/modelCheckpoint/")):
-		try:
-			os.makedirs(os.path.dirname(research_filename + "/modelCheckpoint/"))
-		except OSError as exc:
-			if exc.errno != errno.EEXIST:
-				raise
 	f = open(filename, 'w')
 	f.write("########\n\n")
 	f.write("## \tModel: %s with N=%d"%(model, n_hidden))
-	f.write("\n\n")
 	f.write("########\n\n")
-
 
 	# --- Training Loop ----------------------
 	saver = tf.train.Saver()
@@ -217,7 +231,7 @@ def main(
 			losses.append(loss)
 			accs.append(acc)
 			step += 1
-			if step % 200 == 199: 
+			if step % 2000 == 1999: 
 				acc = sess.run(accuracy, feed_dict={x: val_x, y: val_y})
 				loss = sess.run(cost, feed_dict={x: val_x, y: val_y})
 
@@ -256,7 +270,7 @@ if __name__=="__main__":
 		description="recall Task")
 	parser.add_argument("model", default='LSTM', help='Model name: LSTM, LSTSM, LSTRM, LSTUM, EURNN, GRU, GRRU, GORU, GRRU')
 	parser.add_argument('-T', type=int, default=30, help='Information sequence length')
-	parser.add_argument('--n_iter', '-I', type=int, default=500000, help='training iteration number')
+	parser.add_argument('--n_iter', '-I', type=int, default=100000, help='training iteration number')
 	parser.add_argument('--n_batch', '-B', type=int, default=128, help='batch size')
 	parser.add_argument('--n_hidden', '-H', type=int, default=50, help='hidden layer size')
 	parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EURNN, default value is 2')
