@@ -388,7 +388,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
 
 
 
-            if step % 200 == 199:
+            if step % 50 == 49:
             
 
                 val_dict = {sentence: val_x, question: val_q, answer_holder: val_y}
@@ -420,7 +420,7 @@ if __name__=="__main__":
         description="bAbI Task")
     parser.add_argument("model", default='LSTM', help='Model name: LSTM, EUNN, GRU, GORU')
     parser.add_argument('qid', type=int, default=20, help='Test set')
-    parser.add_argument('--n_iter', '-I', type=int, default=400, help='training iteration number')
+    parser.add_argument('--n_iter', '-I', type=int, default=10000, help='training iteration number')
     parser.add_argument('--n_batch', '-B', type=int, default=32, help='batch size')
     parser.add_argument('--n_hidden', '-H', type=int, default=128, help='hidden layer size')
     parser.add_argument('--n_embed', '-E', type=int, default=64, help='embedding size')
