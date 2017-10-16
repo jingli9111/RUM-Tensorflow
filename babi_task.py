@@ -171,7 +171,7 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
 #                                             QUERY_HIDDEN_SIZE))
 
 
-def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, norm, grid_name):
+def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, learning_rate, norm, grid_name):
 
 
 
@@ -330,14 +330,16 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, no
 
 
     # --- Initialization ----------------------
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
     init = tf.global_variables_initializer()
 
     for i in tf.global_variables():
         print(i.name)
    # --- save result ----------------------
     filename = "./output/babi/" + str(qid) + "/" + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
-        
+    filename = filename + "_h=" + str(n_hidden)
+    filename = filename + "_lr=" + str(learning_rate)
+    filename = filename + "_norm=" + str(norm)
     filename = filename + ".txt"
     if not os.path.exists(os.path.dirname(filename)):
         try:
@@ -386,7 +388,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, no
 
 
 
-            if step % 100 == 99:
+            if step % 200 == 199:
             
 
                 val_dict = {sentence: val_x, question: val_q, answer_holder: val_y}
@@ -418,14 +420,14 @@ if __name__=="__main__":
         description="bAbI Task")
     parser.add_argument("model", default='LSTM', help='Model name: LSTM, EUNN, GRU, GORU')
     parser.add_argument('qid', type=int, default=20, help='Test set')
-    parser.add_argument('--n_iter', '-I', type=int, default=10000, help='training iteration number')
+    parser.add_argument('--n_iter', '-I', type=int, default=400, help='training iteration number')
     parser.add_argument('--n_batch', '-B', type=int, default=32, help='batch size')
     parser.add_argument('--n_hidden', '-H', type=int, default=128, help='hidden layer size')
     parser.add_argument('--n_embed', '-E', type=int, default=64, help='embedding size')
     parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EUNN, default value is 2')
     parser.add_argument('--comp', '-C', type=str, default="False", help='Complex domain or Real domain. Default is False: real domain')
     parser.add_argument('--FFT', '-F', type=str, default="True", help='FFT style, default is False')
-    # parser.add_argument('--learning_rate', '-R', default=0.001, type=str)
+    parser.add_argument('--learning_rate', '-R', default=0.001, type=str)
     # parser.add_argument('--decay', '-D', default=0.9, type=str)
     parser.add_argument('--norm', '-norm', default=None, type=float)    
     parser.add_argument('--grid_name', '-GN', default = None, type = str, help = 'specify folder to save to')   
@@ -449,7 +451,7 @@ if __name__=="__main__":
                 'capacity': dicts['capacity'],
                 'comp': dicts['comp'],
                 'FFT': dicts['FFT'],
-                # 'learning_rate': dicts['learning_rate'],
+                'learning_rate': dicts['learning_rate'],
                 # 'decay': dicts['decay'],
                 'norm': dicts['norm'],
                 'grid_name': dicts['grid_name']
