@@ -143,7 +143,6 @@ class RUMCell(RNNCell):
 			use_zoneout: zoneout, True or False 
 			use_layer_norm: batch normalization, True or False
 			is_training: marker for the zoneout 
-
 		"""
 		super(RUMCell, self).__init__(_reuse = reuse)
 		self._hidden_size = hidden_size
@@ -193,3 +192,106 @@ class RUMCell(RNNCell):
 		if self._use_zoneout:
 			new_h = aux.rum_zoneout(new_h, state, self._zoneout_keep_h, self._is_training) 
 		return new_h, new_h
+
+	def zero_state(self, batch_size, dtype):
+		h = tf.zeros([batch_size, self._hidden_size], dtype=dtype)
+		return h
+
+class ARUMCell(RNNCell):
+	"""Associative Rotational Unit of Memory"""
+
+	def __init__(self,
+				 hidden_size,
+				 activation = None,
+				 reuse = None,
+				 kernel_initializer = None,
+				 bias_initializer = None, 
+				 T_norm = None, 
+				 eps = 1e-12,
+				 use_zoneout = False,
+				 zoneout_keep_h = 0.9,
+				 use_layer_norm = False,
+				 is_training = False,
+				 lambda_pow = 0
+				 ):
+		"""Initialization of the Associative RUM cell.
+
+		Args: 
+			hidden_size: number of neurons in hidden state 
+			acitvation_tmp: activation of the temporary new state 
+			activation_tar: activation of the target 
+			activation_emb: activation of the embedded input 
+			T_norm: norm for time normalization, `eta` in the paper 
+			eps: the cutoff for the normalizations
+			use_zoneout: zoneout, True or False 
+			use_layer_norm: batch normalization, True or False
+			is_training: marker for the zoneout 
+			lambda_pow: the power for the associative memory (an integer)
+		"""
+		super(ARUMCell, self).__init__(_reuse = reuse)
+		self._hidden_size = hidden_size
+		self._activation = activation or relu
+		self._T_norm = T_norm 
+		self._kernel_initializer = kernel_initializer or aux.orthogonal_initializer(1.0)
+		self._bias_initializer = bias_initializer
+		self._eps = eps 
+		self._use_zoneout = use_zoneout 
+		self._zoneout_keep_h = zoneout_keep_h
+		self._use_layer_norm = use_layer_norm
+		self._is_training = is_training 
+		self._lambda_pow = lambda_pow
+
+	@property
+	def state_size(self):
+		return self._hidden_size * (self._hidden_size + 1)
+	
+	@property
+	def output_size(self):
+		return self._hidden_size
+
+	def call(self, inputs, state):
+		#extract the associative memory and the state
+		size_batch = tf.shape(state)[0]
+		assoc_mem, state = tf.split(state, [self._hidden_size * self._hidden_size, self._hidden_size], 1)
+		assoc_mem = tf.reshape(assoc_mem, [size_batch, self._hidden_size, self._hidden_size])
+
+		with vs.variable_scope("gates"): 
+			bias_ones = self._bias_initializer
+			if self._bias_initializer is None:
+				dtype = [a.dtype for a in [inputs, state]][0]
+				bias_ones = init_ops.constant_initializer(1.0, dtype = dtype)
+			value = _linear([inputs, state], 2 * self._hidden_size, True, bias_ones,
+						aux.rum_ortho_initializer())
+			r, u = array_ops.split(value = value, num_or_size_splits = 2, axis = 1)
+			u = sigmoid(u)
+			if self._use_layer_norm: 
+				concat = tf.concat([r, u], 1)
+				concat = aux.layer_norm_all(concat, 2, self._hidden_size, "LN_r_u")
+				r, u = tf.split(concat, 2, 1)
+		with vs.variable_scope("candidate"):
+			x_emb = _linear(inputs, self._hidden_size, True, self._bias_initializer, 
+							self._kernel_initializer)
+			tmp_rotation = rotation_operator(x_emb, r)
+			Rt = tf.matmul(assoc_mem, tmp_rotation)
+			state_new = tf.reshape(tf.matmul(Rt, tf.reshape(state, [size_batch, self._hidden_size, 1])), [size_batch, self._hidden_size])
+
+			if self._use_layer_norm: 
+				c = self._activation(aux.layer_norm(x_emb + state_new, "LN_c"))
+			else:
+				c = self._activation(x_emb + state_new)
+		new_h = u * state + (1 - u) * c
+		if self._T_norm != None: 
+			new_h = tf.nn.l2_normalize(new_h, 1, epsilon = self._eps) * self._T_norm
+		if self._use_zoneout:
+			new_h = aux.rum_zoneout(new_h, state, self._zoneout_keep_h, self._is_training) 
+
+		Rt = tf.reshape(Rt, [size_batch, self._hidden_size * self._hidden_size])
+		new_state = tf.concat([Rt, new_h], 1)
+		return new_h, new_state
+
+	def zero_state(self, batch_size, dtype):
+		e = tf.eye(self._hidden_size, batch_shape = [batch_size])
+		e = tf.reshape(e, [batch_size, self._hidden_size * self._hidden_size])
+		c = tf.zeros([batch_size, self._hidden_size], dtype=dtype)
+		h = tf.concat([e, c], 1)
+		return h
