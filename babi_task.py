@@ -173,7 +173,7 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
 
 def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, learning_rate, norm, grid_name):
 
-
+    learning_rate = float(learning_rate)
 
     path = './data/tasks_1-20_v1-2.tar.gz'
     tar = tarfile.open(path)
