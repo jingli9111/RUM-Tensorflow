@@ -8,7 +8,7 @@ import tensorflow as tf
 import sys
 
 from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell, LSTMStateTuple
-from RUM import RUMCell
+from RUM import ARUMCell
 from EUNN import EUNNCell
 from GORU import GORUCell
 
@@ -104,7 +104,7 @@ def main(
 		cell = GRUCell(n_hidden)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
 	elif model == "RUM":
-		cell = RUMCell(n_hidden, T_norm = norm)
+		cell = ARUMCell(n_hidden, T_norm = norm)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
 	elif model == "RNN":
 		cell = BasicRNNCell(n_hidden)
