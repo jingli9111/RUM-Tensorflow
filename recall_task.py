@@ -270,7 +270,7 @@ if __name__=="__main__":
 		description="recall Task")
 	parser.add_argument("model", default='LSTM', help='Model name: LSTM, LSTSM, LSTRM, LSTUM, EURNN, GRU, GRRU, GORU, GRRU')
 	parser.add_argument('-T', type=int, default=50, help='Information sequence length')
-	parser.add_argument('--n_iter', '-I', type=int, default=100000, help='training iteration number')
+	parser.add_argument('--n_iter', '-I', type=int, default=1000000, help='training iteration number')
 	parser.add_argument('--n_batch', '-B', type=int, default=128, help='batch size')
 	parser.add_argument('--n_hidden', '-H', type=int, default=50, help='hidden layer size')
 	parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EURNN, default value is 2')
