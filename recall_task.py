@@ -27,14 +27,16 @@ def random_variable(shape, dev):
 
 def recall_data(T, n_data):
 	# character
+	n_category = int(T // 2)
+
 	input1 = []
 	for i in range(n_data):
-		x0 = np.arange(1, 27)
+		x0 = np.arange(1, n_category+1)
 		np.random.shuffle(x0)
 		input1.append(x0[:T//2])
 	input1 = np.array(input1)
 	# number
-	input2 = np.random.randint(27, high=37, size=(n_data, T//2))
+	input2 = np.random.randint(n_category+1, high=n_category+11, size=(n_data, T//2))
 
 	#question mark
 	input3 = np.zeros((n_data, 2))
@@ -45,7 +47,7 @@ def recall_data(T, n_data):
 	input4 = np.array([[input1[i][ind[i]]] for i in range(n_data)])
 
 	x = np.concatenate((seq, input3, input4), axis=1).astype('int32')
-	y = np.array([input2[i][ind[i]] for i in range(n_data)]) - 27
+	y = np.array([input2[i][ind[i]] for i in range(n_data)]) - n_category-1
 
 	return x, y
 
@@ -80,7 +82,7 @@ def main(
 	decay = float(decay)
 
 	# --- Set data params ----------------
-	n_input = 37
+	n_input = int(T/2) + 10 + 1
 	n_output = 10
 	n_train = 100000
 	n_valid = 10000
@@ -231,7 +233,7 @@ def main(
 			losses.append(loss)
 			accs.append(acc)
 			step += 1
-			if step % 2000 == 1999: 
+			if step % 1000 == 999: 
 				acc = sess.run(accuracy, feed_dict={x: val_x, y: val_y})
 				loss = sess.run(cost, feed_dict={x: val_x, y: val_y})
 
@@ -270,7 +272,7 @@ if __name__=="__main__":
 		description="recall Task")
 	parser.add_argument("model", default='LSTM', help='Model name: LSTM, LSTSM, LSTRM, LSTUM, EURNN, GRU, GRRU, GORU, GRRU')
 	parser.add_argument('-T', type=int, default=50, help='Information sequence length')
-	parser.add_argument('--n_iter', '-I', type=int, default=1000000, help='training iteration number')
+	parser.add_argument('--n_iter', '-I', type=int, default=100000, help='training iteration number')
 	parser.add_argument('--n_batch', '-B', type=int, default=128, help='batch size')
 	parser.add_argument('--n_hidden', '-H', type=int, default=50, help='hidden layer size')
 	parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EURNN, default value is 2')
