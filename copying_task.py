@@ -67,7 +67,6 @@ def main(
 
   	# --- Create data --------------------
 
-	train_x, train_y = copying_data(T, n_train, n_sequence)
 	test_x, test_y = copying_data(T, n_test, n_sequence)
 
 
@@ -182,8 +181,10 @@ def main(
 
 
 		while step < n_iter:
-			batch_x = train_x[step * n_batch : (step+1) * n_batch]
-			batch_y = train_y[step * n_batch : (step+1) * n_batch]
+			batch_x, batch_y = copying_data(T, n_batch, n_sequence)
+
+			# batch_x = train_x[step * n_batch : (step+1) * n_batch]
+			# batch_y = train_y[step * n_batch : (step+1) * n_batch]
 
 			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
