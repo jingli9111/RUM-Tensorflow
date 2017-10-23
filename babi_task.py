@@ -361,6 +361,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
 
 
     # --- Training Loop ----------------------
+    saver = tf.train.Saver()
 
     step = 0
     with tf.Session(config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=False)) as sess:
@@ -395,7 +396,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
 
 
 
-            if step % 50 == 49:
+            if step % 200 == 1:
             
                 saver.save(sess, folder + "/modelCheckpoint/step=" + str(step))
 
