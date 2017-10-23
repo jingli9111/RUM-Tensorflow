@@ -336,7 +336,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
     for i in tf.global_variables():
         print(i.name)
    # --- save result ----------------------
-    folder = "./output/recall/T=" + str(T) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
+    folder = "./output/babi/" + str(qid) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
     filename = folder + "_h=" + str(n_hidden)
     filename = filename + "_lr=" + str(learning_rate)
     filename = filename + "_norm=" + str(norm)
