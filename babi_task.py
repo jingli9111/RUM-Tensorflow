@@ -336,8 +336,8 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
     for i in tf.global_variables():
         print(i.name)
    # --- save result ----------------------
-    filename = "./output/babi/" + str(qid) + "/" + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
-    filename = filename + "_h=" + str(n_hidden)
+    folder = "./output/recall/T=" + str(T) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
+    filename = folder + "_h=" + str(n_hidden)
     filename = filename + "_lr=" + str(learning_rate)
     filename = filename + "_norm=" + str(norm)
     filename = filename + ".txt"
@@ -345,6 +345,13 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
         try:
             os.makedirs(os.path.dirname(filename))
         except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    if not os.path.exists(os.path.dirname(folder + "/modelCheckpoint/")):
+        try:
+            print(folder + "/modelCheckpoint/")
+            os.makedirs(os.path.dirname(folder + "/modelCheckpoint/"))
+        except OSError as exc:
             if exc.errno != errno.EEXIST:
                 raise
     f = open(filename, 'w')
@@ -390,6 +397,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
 
             if step % 50 == 49:
             
+                saver.save(sess, folder + "/modelCheckpoint/step=" + str(step))
 
                 val_dict = {sentence: val_x, question: val_q, answer_holder: val_y}
                 val_acc = sess.run(accuracy, feed_dict=val_dict)
