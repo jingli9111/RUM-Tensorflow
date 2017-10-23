@@ -8,7 +8,7 @@ import tensorflow as tf
 import sys
 
 from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell, LSTMStateTuple
-from RUM import ARUMCell
+from RUM import RUMCell, ARUMCell, ARUM2Cell
 from EUNN import EUNNCell
 from GORU import GORUCell
 
@@ -106,7 +106,13 @@ def main(
 		cell = GRUCell(n_hidden)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
 	elif model == "RUM":
+		cell = RUMCell(n_hidden, T_norm = norm)
+		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+	elif model == "ARUM":
 		cell = ARUMCell(n_hidden, T_norm = norm)
+		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+	elif model == "ARUM2":
+		cell = ARUM2Cell(n_hidden, T_norm = norm)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
 	elif model == "RNN":
 		cell = BasicRNNCell(n_hidden)
@@ -226,7 +232,6 @@ def main(
 		while step < n_iter:
 			batch_x, batch_y = next_batch(train_x, train_y, step, n_batch)
 
-			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
 			acc = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
 			loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y})
@@ -234,6 +239,7 @@ def main(
 			print("Iter " + str(step) + ", Minibatch Loss= " + \
 				  "{:.6f}".format(loss) + ", Training Accuracy= " + \
 				  "{:.5f}".format(acc))
+			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
 
 			steps.append(step)
