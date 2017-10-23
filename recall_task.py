@@ -181,8 +181,8 @@ def main(
 	# f.write("## \tModel: %s with N=%d"%(model, n_hidden))
 	# f.write("\n\n")
 	# f.write("########\n\n")
-	filename = "./output/recall/T=" + str(T) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
-	filename = filename + "_h=" + str(n_hidden)
+	folder = "./output/recall/T=" + str(T) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
+	filename = folder + "_h=" + str(n_hidden)
 	filename = filename + "_lr=" + str(learning_rate)
 	filename = filename + "_norm=" + str(norm)
 	filename = filename + ".txt"
@@ -190,6 +190,13 @@ def main(
 		try:
 			os.makedirs(os.path.dirname(filename))
 		except OSError as exc: # Guard against race condition
+			if exc.errno != errno.EEXIST:
+				raise
+	if not os.path.exists(os.path.dirname(folder + "/modelCheckpoint/")):
+		try:
+			print(folder + "/modelCheckpoint/")
+			os.makedirs(os.path.dirname(folder + "/modelCheckpoint/"))
+		except OSError as exc:
 			if exc.errno != errno.EEXIST:
 				raise
 	f = open(filename, 'w')
@@ -242,18 +249,19 @@ def main(
 				  "{:.5f}".format(acc))
 				f.write("%d\t%f\t%f\n"%(step, loss, acc))
 
-			# if step % 4000 == 0: 
-			# 	saver.save(sess, research_filename + "/modelCheckpoint/step=" + str(step))
-			# 	if model == "GRU": tmp = "gru"
-			# 	if model == "RUM": tmp = "RUM"
-			# 	if model == "EUNN": tmp = "eunn"
-			# 	if model == "GORU": tmp = "goru"
+			if step % 1000 == 1: 
 
-			# 	kernel = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/kernel:0"][0]
-			# 	bias = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/bias:0"][0]
-			# 	k, b = sess.run([kernel, bias])
-			# 	np.save(research_filename + "/kernel_" + str(step), k)
-			# 	np.save(research_filename + "/bias_" + str(step), b)
+				saver.save(sess, folder + "/modelCheckpoint/step=" + str(step))
+				# if model == "GRU": tmp = "gru"
+				# if model == "RUM": tmp = "RUM"
+				# if model == "EUNN": tmp = "eunn"
+				# if model == "GORU": tmp = "goru"
+
+				# kernel = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/kernel:0"][0]
+				# bias = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/bias:0"][0]
+				# k, b = sess.run([kernel, bias])
+				# np.save(folder + "/kernel_" + str(step), k)
+				# np.save(folder + "/bias_" + str(step), b)
 
 		print("Optimization Finished!")
 
