@@ -336,8 +336,8 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
     for i in tf.global_variables():
         print(i.name)
    # --- save result ----------------------
-    filename = "./output/babi/" + str(qid) + "/" + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
-    filename = filename + "_h=" + str(n_hidden)
+    folder = "./output/babi/" + str(qid) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
+    filename = folder + "_h=" + str(n_hidden)
     filename = filename + "_lr=" + str(learning_rate)
     filename = filename + "_norm=" + str(norm)
     filename = filename + ".txt"
@@ -347,6 +347,13 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
         except OSError as exc: # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
+    if not os.path.exists(os.path.dirname(folder + "/modelCheckpoint/")):
+        try:
+            print(folder + "/modelCheckpoint/")
+            os.makedirs(os.path.dirname(folder + "/modelCheckpoint/"))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
     f = open(filename, 'w')
     f.write("########\n\n")
     f.write("## \tModel: %s with N=%d"%(model, n_hidden))
@@ -354,6 +361,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
 
 
     # --- Training Loop ----------------------
+    saver = tf.train.Saver()
 
     step = 0
     with tf.Session(config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=False)) as sess:
@@ -388,8 +396,9 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
 
 
 
-            if step % 50 == 49:
+            if step % 200 == 1:
             
+                saver.save(sess, folder + "/modelCheckpoint/step=" + str(step))
 
                 val_dict = {sentence: val_x, question: val_q, answer_holder: val_y}
                 val_acc = sess.run(accuracy, feed_dict=val_dict)
@@ -420,9 +429,9 @@ if __name__=="__main__":
         description="bAbI Task")
     parser.add_argument("model", default='LSTM', help='Model name: LSTM, EUNN, GRU, GORU')
     parser.add_argument('qid', type=int, default=20, help='Test set')
-    parser.add_argument('--n_iter', '-I', type=int, default=10000, help='training iteration number')
+    parser.add_argument('--n_iter', '-I', type=int, default=4000, help='training iteration number')
     parser.add_argument('--n_batch', '-B', type=int, default=32, help='batch size')
-    parser.add_argument('--n_hidden', '-H', type=int, default=128, help='hidden layer size')
+    parser.add_argument('--n_hidden', '-H', type=int, default=256, help='hidden layer size')
     parser.add_argument('--n_embed', '-E', type=int, default=64, help='embedding size')
     parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EUNN, default value is 2')
     parser.add_argument('--comp', '-C', type=str, default="False", help='Complex domain or Real domain. Default is False: real domain')

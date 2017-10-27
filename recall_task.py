@@ -8,7 +8,7 @@ import tensorflow as tf
 import sys
 
 from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell, LSTMStateTuple
-from RUM import RUMCell
+from RUM import RUMCell, ARUMCell, ARUM2Cell
 from EUNN import EUNNCell
 from GORU import GORUCell
 
@@ -27,14 +27,16 @@ def random_variable(shape, dev):
 
 def recall_data(T, n_data):
 	# character
+	n_category = int(T // 2)
+
 	input1 = []
 	for i in range(n_data):
-		x0 = np.arange(1, 27)
+		x0 = np.arange(1, n_category+1)
 		np.random.shuffle(x0)
 		input1.append(x0[:T//2])
 	input1 = np.array(input1)
 	# number
-	input2 = np.random.randint(27, high=37, size=(n_data, T//2))
+	input2 = np.random.randint(n_category+1, high=n_category+11, size=(n_data, T//2))
 
 	#question mark
 	input3 = np.zeros((n_data, 2))
@@ -45,7 +47,7 @@ def recall_data(T, n_data):
 	input4 = np.array([[input1[i][ind[i]]] for i in range(n_data)])
 
 	x = np.concatenate((seq, input3, input4), axis=1).astype('int32')
-	y = np.array([input2[i][ind[i]] for i in range(n_data)]) - 27
+	y = np.array([input2[i][ind[i]] for i in range(n_data)]) - n_category-1
 
 	return x, y
 
@@ -80,7 +82,7 @@ def main(
 	decay = float(decay)
 
 	# --- Set data params ----------------
-	n_input = 37
+	n_input = int(T/2) + 10 + 1
 	n_output = 10
 	n_train = 100000
 	n_valid = 10000
@@ -105,6 +107,12 @@ def main(
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
 	elif model == "RUM":
 		cell = RUMCell(n_hidden, T_norm = norm)
+		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+	elif model == "ARUM":
+		cell = ARUMCell(n_hidden, T_norm = norm)
+		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+	elif model == "ARUM2":
+		cell = ARUM2Cell(n_hidden, T_norm = norm)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
 	elif model == "RNN":
 		cell = BasicRNNCell(n_hidden)
@@ -179,8 +187,8 @@ def main(
 	# f.write("## \tModel: %s with N=%d"%(model, n_hidden))
 	# f.write("\n\n")
 	# f.write("########\n\n")
-	filename = "./output/recall/T=" + str(T) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
-	filename = filename + "_h=" + str(n_hidden)
+	folder = "./output/recall/T=" + str(T) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
+	filename = folder + "_h=" + str(n_hidden)
 	filename = filename + "_lr=" + str(learning_rate)
 	filename = filename + "_norm=" + str(norm)
 	filename = filename + ".txt"
@@ -188,6 +196,13 @@ def main(
 		try:
 			os.makedirs(os.path.dirname(filename))
 		except OSError as exc: # Guard against race condition
+			if exc.errno != errno.EEXIST:
+				raise
+	if not os.path.exists(os.path.dirname(folder + "/modelCheckpoint/")):
+		try:
+			print(folder + "/modelCheckpoint/")
+			os.makedirs(os.path.dirname(folder + "/modelCheckpoint/"))
+		except OSError as exc:
 			if exc.errno != errno.EEXIST:
 				raise
 	f = open(filename, 'w')
@@ -217,7 +232,6 @@ def main(
 		while step < n_iter:
 			batch_x, batch_y = next_batch(train_x, train_y, step, n_batch)
 
-			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
 			acc = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
 			loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y})
@@ -225,13 +239,14 @@ def main(
 			print("Iter " + str(step) + ", Minibatch Loss= " + \
 				  "{:.6f}".format(loss) + ", Training Accuracy= " + \
 				  "{:.5f}".format(acc))
+			sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
 
 
 			steps.append(step)
 			losses.append(loss)
 			accs.append(acc)
 			step += 1
-			if step % 2000 == 1999: 
+			if step % 1000 == 999: 
 				acc = sess.run(accuracy, feed_dict={x: val_x, y: val_y})
 				loss = sess.run(cost, feed_dict={x: val_x, y: val_y})
 
@@ -240,18 +255,19 @@ def main(
 				  "{:.5f}".format(acc))
 				f.write("%d\t%f\t%f\n"%(step, loss, acc))
 
-			# if step % 4000 == 0: 
-			# 	saver.save(sess, research_filename + "/modelCheckpoint/step=" + str(step))
-			# 	if model == "GRU": tmp = "gru"
-			# 	if model == "RUM": tmp = "RUM"
-			# 	if model == "EUNN": tmp = "eunn"
-			# 	if model == "GORU": tmp = "goru"
+			if step % 1000 == 1: 
 
-			# 	kernel = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/kernel:0"][0]
-			# 	bias = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/bias:0"][0]
-			# 	k, b = sess.run([kernel, bias])
-			# 	np.save(research_filename + "/kernel_" + str(step), k)
-			# 	np.save(research_filename + "/bias_" + str(step), b)
+				saver.save(sess, folder + "/modelCheckpoint/step=" + str(step))
+				# if model == "GRU": tmp = "gru"
+				# if model == "RUM": tmp = "RUM"
+				# if model == "EUNN": tmp = "eunn"
+				# if model == "GORU": tmp = "goru"
+
+				# kernel = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/kernel:0"][0]
+				# bias = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/bias:0"][0]
+				# k, b = sess.run([kernel, bias])
+				# np.save(folder + "/kernel_" + str(step), k)
+				# np.save(folder + "/bias_" + str(step), b)
 
 		print("Optimization Finished!")
 
@@ -269,14 +285,14 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser(
 		description="recall Task")
 	parser.add_argument("model", default='LSTM', help='Model name: LSTM, LSTSM, LSTRM, LSTUM, EURNN, GRU, GRRU, GORU, GRRU')
-	parser.add_argument('-T', type=int, default=30, help='Information sequence length')
+	parser.add_argument('-T', type=int, default=50, help='Information sequence length')
 	parser.add_argument('--n_iter', '-I', type=int, default=100000, help='training iteration number')
 	parser.add_argument('--n_batch', '-B', type=int, default=128, help='batch size')
 	parser.add_argument('--n_hidden', '-H', type=int, default=50, help='hidden layer size')
 	parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EURNN, default value is 2')
 	parser.add_argument('--comp', '-C', type=str, default="False", help='Complex domain or Real domain. Default is False: real domain')
 	parser.add_argument('--FFT', '-F', type=str, default="False", help='FFT style, default is False')
-	parser.add_argument('--learning_rate', '-R', default=0.0001, type=str)
+	parser.add_argument('--learning_rate', '-R', default=0.001, type=str)
 	parser.add_argument('--decay', '-D', default=0.9, type=str)
 	parser.add_argument('--learning_rate_decay', '-RD', default="False", type=str)
 	parser.add_argument('--norm', '-norm', default=None, type=float)	
