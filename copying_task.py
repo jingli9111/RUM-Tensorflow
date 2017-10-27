@@ -8,12 +8,12 @@ import tensorflow as tf
 import sys
 
 from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell, LSTMStateTuple
-from drum import DRUMCell
-from EUNN import EUNNCell
-from GORU import GORUCell
 
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
+
+from ARUM import ARUMCell 
+#from ARUM import ARUMCell
 
 sigmoid = math_ops.sigmoid 
 tanh = math_ops.tanh
@@ -82,21 +82,17 @@ def main(
 		cell = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
 	elif model == "GRU":
-		cell = GRUCell(n_hidden)
+		cell = GRUCell(n_hidden, kernel_initializer = tf.orthogonal_initializer())
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
-	elif model == "DRUM":
-		cell = DRUMCell(n_hidden, normalization = norm, kernel_initializer = tf.orthogonal_initializer())
+	elif model == "RUM":
+		cell = RUMCell(n_hidden, T_norm = norm)
+		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+	elif model == "ARUM":
+		cell = ARUMCell(n_hidden, T_norm = norm)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
 	elif model == "RNN":
 		cell = BasicRNNCell(n_hidden)
 		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
-	elif model == "EUNN":
-		cell = EUNNCell(n_hidden, capacity, FFT, comp)
-		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
-	elif model == "GORU":
-		cell = GORUCell(n_hidden, capacity, FFT)
-		hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
-
 	# --- Hidden Layer to Output ----------------------
 	# important `tanh` prevention from blow up 
 	V_init_val = np.sqrt(6.)/np.sqrt(n_output + n_input)
@@ -167,7 +163,7 @@ def main(
 	mx2  = 0
 	step = 0
 	with tf.Session(config = tf.ConfigProto(log_device_placement = False, 
-											allow_soft_placement = False)) as sess:
+										    allow_soft_placement = False)) as sess:
 		sess.run(init)
 
 		steps = []
@@ -194,23 +190,27 @@ def main(
 			accs.append(acc)
 			step += 1
 			if step % 200 == 199: 
-				f.write("%d\t%f\t%f\n"%(step, loss, acc))
+			    f.write("%d\t%f\t%f\n"%(step, loss, acc))
 
-			# if step % 4000 == 0: 
-			# 	saver.save(sess, research_filename + "/modelCheckpoint/step=" + str(step))
-			# 	if model == "GRU": tmp = "gru"
-			# 	if model == "DRUM": tmp = "drum"
-			# 	if model == "EUNN": tmp = "eunn"
-			# 	if model == "GORU": tmp = "goru"
-
-			# 	kernel = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/kernel:0"][0]
-			# 	bias = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/bias:0"][0]
-			# 	k, b = sess.run([kernel, bias])
-			# 	np.save(research_filename + "/kernel_" + str(step), k)
-			# 	np.save(research_filename + "/bias_" + str(step), b)
-
+			if step % 10000 == 0: 
+				saver.save(sess, research_filename + "/modelCheckpoint/")
+			
+			if step % 1000 == 0: 
+				if model == "GRU": tmp = "gru"
+				if model == "RUM": tmp = "rum"
+				if model == "GRU" or model == "RUM":
+					kernel = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/kernel:0"][0]
+					bias = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/gates/bias:0"][0]
+					k, b = sess.run([kernel, bias])
+					np.save(research_filename + "/kernel_" + str(step), k)
+					np.save(research_filename + "/bias_" + str(step), b)
+				if model == "RUM": 
+					kernel_emb = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/candidate/kernel:0"][0]
+					bias_emb = [v for v in tf.global_variables() if v.name == "rnn/" + tmp + "_cell/candidate/bias:0"][0]
+					k_emb, b_emb = sess.run([kernel_emb, bias_emb])
+					np.save(research_filename + "/kernel_emb_" + str(step), k_emb)
+					np.save(research_filename + "/bias_emb_" + str(step), b_emb)
 		print("Optimization Finished!")
-
 
 		
 		# --- test ----------------------
@@ -224,9 +224,9 @@ def main(
 if __name__=="__main__":
 	parser = argparse.ArgumentParser(
 		description="Copying Task")
-	parser.add_argument("model", default='LSTM', help='Model name: LSTM, LSTSM, LSTRM, LSTUM, EURNN, GRU, GRRU, GORU, GRRU')
+	parser.add_argument("model", default='DRUM', help='Model name: LSTM, LSTSM, LSTRM, LSTUM, EURNN, GRU, GRRU, GORU, GRRU')
 	parser.add_argument('-T', type=int, default=200, help='Information sequence length')
-	parser.add_argument('--n_iter', '-I', type=int, default=100000, help='training iteration number')
+	parser.add_argument('--n_iter', '-I', type=int, default=100, help='training iteration number')
 	parser.add_argument('--n_batch', '-B', type=int, default=128, help='batch size')
 	parser.add_argument('--n_hidden', '-H', type=int, default=100, help='hidden layer size')
 	parser.add_argument('--capacity', '-L', type=int, default=2, help='Tunable style capacity, only for EURNN, default value is 2')
@@ -235,7 +235,7 @@ if __name__=="__main__":
 	parser.add_argument('--learning_rate', '-R', default=0.001, type=str)
 	parser.add_argument('--decay', '-D', default=0.9, type=str)
 	parser.add_argument('--learning_rate_decay', '-RD', default="False", type=str)
-	parser.add_argument('--norm', '-norm', default=None, type=float)	
+	parser.add_argument('--norm', '-norm', default=None, type=float)
 	parser.add_argument('--grid_name', '-GN', default = None, type = str, help = 'specify folder to save to')	
 	args = parser.parse_args()
 	dict = vars(args)
