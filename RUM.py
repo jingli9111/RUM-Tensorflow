@@ -206,7 +206,7 @@ class ARUMCell(RNNCell):
 	"""(Associative) Rotational Unit of Memory
 
 	lambda = 1 (tuning in the associative memory); 
-	uses `rotate_operator` to update the rotation recursively. 
+	uses `rotation_operator` to update the rotation recursively. 
 	"""
 
 	def __init__(self,
