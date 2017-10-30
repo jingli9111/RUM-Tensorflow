@@ -1,74 +1,26 @@
-'''Trains two recurrent neural networks based upon a story and a question.
-The resulting merged vector is then queried to answer a range of bAbI tasks.
-
-The results are comparable to those for an LSTM model provided in Weston et al.:
-"Towards AI-Complete Question Answering: A Set of Prerequisite Toy Tasks"
-http://arxiv.org/abs/1502.05698
-
-Task Number      | FB LSTM Baseline | Keras QA
----        | ---        | ---
-QA1 - Single Supporting Fact | 50            | 100.0
-QA2 - Two Supporting Facts   | 20            | 50.0
-QA3 - Three Supporting Facts | 20            | 20.5
-QA4 - Two Arg. Relations     | 61            | 62.9
-QA5 - Three Arg. Relations   | 70            | 61.9
-QA6 - yes/No Questions     | 48            | 50.7
-QA7 - Counting         | 49            | 78.9
-QA8 - Lists/Sets             | 45            | 77.2
-QA9 - Simple Negation      | 64            | 64.0
-QA10 - Indefinite Knowledge  | 44            | 47.7
-QA11 - Basic Coreference     | 72            | 74.9
-QA12 - Conjunction       | 74            | 76.4
-QA13 - Compound Coreference  | 94            | 94.4
-QA14 - Time Reasoning      | 27            | 34.8
-QA15 - Basic Deduction     | 21            | 32.4
-QA16 - Basic Induction     | 23            | 50.6
-QA17 - Positional Reasoning  | 51            | 49.1
-QA18 - Size Reasoning      | 52            | 90.8
-QA19 - Path Finding    | 8                | 9.0
-QA20 - Agent's Motivations   | 91            | 90.7
-
-For the resources related to the bAbI project, refer to:
-https://research.facebook.com/researchers/1543934539189348
-
-Notes:
-
-- With default word, sentence, and query vector sizes, the GRU model achieves:
-  - 100% test accuracy on QA1 in 20 epochs (2 seconds per epoch on CPU)
-  - 50% test accuracy on QA2 in 20 epochs (16 seconds per epoch on CPU)
-In comparison, the Facebook paper achieves 50% and 20% for the LSTM baseline.
-
-- The task does not traditionally parse the question separately. This likely
-improves accuracy and is a good example of merging two RNNs.
-
-- The word vector embeddings are not shared between the story and question RNNs.
-
-- See how the accuracy changes given 10,000 training samples (en-10k) instead
-of only 1000. 1000 was used in order to be comparable to the original paper.
-
-- Experiment with GRU, LSTM, and JZS1-3 as they give subtly different results.
-
-- The length and noise (i.e. 'useless' story components) impact the ability for
-LSTMs / GRUs to provide the correct answer. Given only the supporting facts,
-these RNNs can achieve 100% accuracy on many tasks. Memory networks and neural
-networks that use attentional processes can efficiently search through this
-noise to find the relevant statements, improving performance substantially.
-This becomes especially obvious on QA2 and QA3, both far longer than QA1.
-'''
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import argparse, os, re, tarfile
+import argparse, os
 import tensorflow as tf
-from functools import reduce
+import sys
 
 from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell
-from EUNN import EUNNCell
+
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import nn_ops
+
+from RUM import RUMCell, ARUMCell 
 from GORU import GORUCell
-from RUM import RUMCell
+from EUNN import EUNNCell
+
+sigmoid = math_ops.sigmoid 
+tanh = math_ops.tanh
+matm = math_ops.matmul
+mul = math_ops.multiply 
+relu = nn_ops.relu
 
 
 def tokenize(sent):
@@ -178,16 +130,6 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
     path = './data/tasks_1-20_v1-2.tar.gz'
     tar = tarfile.open(path)
 
-
-    # Default QA1 with 1000 samples
-    # challenge = 'tasks_1-20_v1-2/en/qa1_single-supporting-fact_{}.txt'
-    # QA1 with 10,000 samples
-    # challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
-    # QA2 with 1000 samples
-    # challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
-    # QA2 with 10,000 samples
-    # challenge = 'tasks_1-20_v1-2/en-10k/qa' + str(qid) + '\*_{}.txt'
-
     name_str = [
                 'single-supporting-fact',
                 'two-supporting-facts',  
@@ -259,53 +201,47 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
     # sentence = layers.Input(shape=(story_maxlen,), dtype='int32')
     sentence = tf.placeholder("int32", [None, story_maxlen])
 
-    # EMBED_HIDDEN_SIZE = 50
     n_output = n_hidden
     n_input = n_embed
     n_classes = vocab_size
 
-    # encoded_sentence = layers.Embedding(vocab_size, EMBED_HIDDEN_SIZE)(sentence)
     embed_init_val = np.sqrt(6.)/np.sqrt(vocab_size)
     embed = tf.get_variable('Embedding', [vocab_size, n_embed] ,initializer = tf.random_normal_initializer(-embed_init_val, embed_init_val), dtype=tf.float32)
-    
     encoded_sentence = tf.nn.embedding_lookup(embed, sentence)
-
-    # encoded_sentence = layers.Dropout(0.3)(encoded_sentence)
-    # encoded_sentence = tf.nn.dropout(encoded_sentence, drop)
-
-    # question = layers.Input(shape=(query_maxlen,), dtype='int32')
     question = tf.placeholder("int32", [None, query_maxlen])
-    # encoded_question = layers.Embedding(vocab_size, EMBED_HIDDEN_SIZE)(question)
     encoded_question = tf.nn.embedding_lookup(embed, question)
-    # encoded_question = layers.Dropout(0.3)(encoded_question)
-    # encoded_question = tf.nn.dropout(encoded_question, drop)
-    # merged = layers.add([encoded_sentence, encoded_question])
     merged = tf.concat([encoded_sentence, encoded_question], axis=1)
     print(encoded_sentence, encoded_question, merged)
 
-    with tf.variable_scope('m'):
-    # merged = RNN(EMBED_HIDDEN_SIZE)(merged)
-        if model == "LSTM":
-            cell = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
-        elif model == "GRU":
-            cell = GRUCell(n_hidden)
-        elif model == "RUM":
-            cell = RUMCell(n_hidden, T_norm = norm)
-        elif model == "RNN":
-            cell = BasicRNNCell(n_hidden)
-        elif model == "EUNN":
-            cell = EUNNCell(n_hidden, capacity, FFT, comp)
-        elif model == "GORU":
-            cell = GORUCell(n_hidden, capacity, FFT)
+    if model == "LSTM":
+        cell = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
+    elif model == "GRU":
+        cell = GRUCell(n_hidden)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
+    elif model == "RUM":
+        cell = RUMCell(n_hidden, T_norm = norm)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+    elif model == "ARUM":
+        cell = ARUMCell(n_hidden, T_norm = norm)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+    elif model == "ARUM2":
+        cell = ARUM2Cell(n_hidden, T_norm = norm)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype = tf.float32)
+    elif model == "RNN":
+        cell = BasicRNNCell(n_hidden)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
+    elif model == "EUNN":
+        cell = EUNNCell(n_hidden, capacity, FFT, comp)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
+    elif model == "GORU":
+        cell = GORUCell(n_hidden, capacity, FFT)
+        hidden_out, _ = tf.nn.dynamic_rnn(cell, input_data, dtype=tf.float32)
 
-        merged, _ = tf.nn.dynamic_rnn(cell, merged, dtype=tf.float32)
+
+    merged, _ = tf.nn.dynamic_rnn(cell, merged, dtype=tf.float32)
 
 
-
-
-
-    # merged = layers.Dropout(0.3)(merged)
-    # merged = tf.nn.dropout(merged, drop)
 
     # --- Hidden Layer to Output ----------------------
     V_init_val = np.sqrt(6.)/np.sqrt(n_output + n_input)
@@ -320,8 +256,6 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
 
     answer_holder = tf.placeholder("int64", [None])
 
-    # print(final_out)
-    # print(answer_holder)
 
     # --- evaluate process ----------------------
     cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=final_out, labels=answer_holder))
@@ -333,8 +267,7 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
     init = tf.global_variables_initializer()
 
-    for i in tf.global_variables():
-        print(i.name)
+
    # --- save result ----------------------
     folder = "./output/babi/" + str(qid) + '/' + model  # + "_lambda=" + str(learning_rate) + "_beta=" + str(decay)
     filename = folder + "_h=" + str(n_hidden)
