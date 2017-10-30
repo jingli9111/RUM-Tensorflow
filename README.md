@@ -1,4 +1,4 @@
-# Rotational Unit of Memory (RUM)-Tensorflow
+# Rotational Unit of Memory (RUM) - Tensorflow
 
 Here we present the implementation of a novel RNN model--RUM--which outperforms significantly the current frontier of models in a variety of sequential tasks. The Rotational Unit combines the memorization advantage of unitary/orthogonal matrices with the dynamic structure of associative memory.
     
@@ -10,6 +10,7 @@ If you find this work useful, please cite [arXiv:1710.09537] (https://arxiv.org/
 - On top of the model we use regularization techniques via `auxiliary.py` (modified from [1]). 
 ## copying_task.py 
 Please inspect the arguments in the code in order to conduct your own grid search. For example, if you want to run `lambda = 1 RUM` with time normalization `eta = 2.0` on this task, enter `python copying_task ARUM -norm 2.0`. 
-
+## ptb_task.py 
+Please inspect the arguments in the code and the models in `ptb_configs.py` in order to conduct your own grid search. For example, if you want to run the model `FS-RUM-2`, which achieves 1.189 BPC, enter `python ptb_task --model ptb_fs_rum`. The code is adapted from [1]. 
 
 [1] https://github.com/amujika/Fast-Slow-LSTM
