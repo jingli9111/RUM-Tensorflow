@@ -13,8 +13,8 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
 
 from RUM import RUMCell, ARUMCell 
-from GORU import GORUCell
-from EUNN import EUNNCell
+from baselineModels.GORU import GORUCell
+from baselineModels.EUNN import EUNNCell
 
 sigmoid = math_ops.sigmoid 
 tanh = math_ops.tanh
