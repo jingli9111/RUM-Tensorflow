@@ -9,7 +9,7 @@ If you find this work useful, please cite [arXiv:1710.09537] (https://arxiv.org/
 - If you want to use the `lambda = 0 RUM` then import `RUMCell`. Likewise, import `ARUMCell` for the `lambda = 1 RUM` model.
 - On top of the model we use regularization techniques via `auxiliary.py` (modified from [1]). 
 ## copying_task.py 
-Please inspect the arguments in the code in order to conduct your own grid search. For example, if you want to run `lambda = 1 RUM` with time normalization `eta = 2.0` on this task, enter `python copying_task ARUM -norm 2.0`. 
+Please inspect the arguments in the code in order to test your own hyper-parameters. For example, if you want to run `lambda = 1 RUM` with time normalization `eta = 2.0` on this task, enter `python copying_task ARUM -norm 2.0`. 
 ## ptb_task.py 
 Please inspect the arguments in the code and the models in `ptb_configs.py` in order to conduct your own grid search. For example, if you want to run the model `FS-RUM-2`, which achieves 1.189 BPC, enter `python ptb_task --model ptb_fs_rum`. The code is adapted from [1], from where we also use a layer-normalized LSTM `LNLSTM.py` and the FSRNN higher-level model `FSRNN.py`.
 
