@@ -1,6 +1,7 @@
 import tensorflow as tf
+from tensorflow.python.ops.rnn_cell_impl import RNNCell
 
-class FSRNNCell(tf.contrib.rnn.RNNCell):
+class FSRNNCell(RNNCell):
     def __init__(self, fast_cells, slow_cell, keep_prob=1.0, training=True):
         """Initialize the basic Fast-Slow RNN.
             Args:
@@ -12,13 +13,28 @@ class FSRNNCell(tf.contrib.rnn.RNNCell):
                 recurrent dropout should be implemented in the RNN cells.
               training: If False, no dropout is applied.
         """
-
+        super(FSRNNCell, self).__init__()
         self.fast_layers = len(fast_cells)
         assert self.fast_layers >= 2, 'At least two fast layers are needed'
         self.fast_cells = fast_cells
         self.slow_cell = slow_cell
         self.keep_prob = keep_prob
         if not training: self.keep_prob = 1.0
+
+    @property
+    def state_size(self):
+        return self._hidden_size * 2
+
+    @property
+    def output_size(self):
+        return self._hidden_size
+
+    @property
+    def zero_state(self, batch_size, dtype):
+        F_state = self.fast_cells[0].zero_state(batch_size, dtype)
+        S_state = self.slow_cell.zero_state(batch_size, dtype)
+
+        return (F_state, S_state)
 
     def __call__(self, inputs, state, scope='FS-RNN'):
         F_state = state[0]
@@ -46,9 +62,3 @@ class FSRNNCell(tf.contrib.rnn.RNNCell):
             F_output_drop = tf.nn.dropout(F_output, self.keep_prob)
             return F_output_drop, (F_state, S_state)
 
-
-    def zero_state(self, batch_size, dtype):
-        F_state = self.fast_cells[0].zero_state(batch_size, dtype)
-        S_state = self.slow_cell.zero_state(batch_size, dtype)
-
-        return (F_state, S_state)

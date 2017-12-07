@@ -15,6 +15,6 @@ Please inspect the arguments in the code in order to test your own hyper-paramet
 ## bAbI Question Answering Task: `babi_task.py` 
 Please inspect the arguments in the code in order to test your own hyper-parameters. For example, if you want to run `lambda = 0 RUM` without time normalization on subtask number 5, enter `python copying_task RUM 5`. 
 ## Penn Treebank Character-level Language modeling Task: `ptb_task.py`
-Please inspect the arguments in the code and the models in `ptb_configs.py` in order to conduct your own grid search. For example, if you want to run the model `FS-RUM-2`, which achieves 1.189 BPC, enter `python ptb_task --model ptb_fs_rum`. The code is adapted from [1], from where we also use a layer-normalized LSTM `LNLSTM.py` and the FSRNN higher-level model `FSRNN.py`.
+Please inspect the arguments in the code and the models in `ptb_configs.py` in order to conduct your own grid search. For example, if you want to run the model `FS-RUM-2`, which achieves 1.189 BPC, enter `python ptb_task.py --model ptb_fs_rum`. The code is adapted from [1], from where we also use a layer-normalized LSTM `LNLSTM.py` and the FSRNN higher-level model `FSRNN.py`.
 
 [1] https://github.com/amujika/Fast-Slow-LSTM

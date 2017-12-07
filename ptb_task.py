@@ -83,6 +83,7 @@ class PTBModel(object):
             FS_cell = FSRNN.FSRNNCell(F_cells, S_cell, config.keep_prob, is_training)
             self._initial_state = FS_cell.zero_state(batch_size, tf.float32)
             state = self._initial_state
+            print FS_cell
         else: 
             def rum_cell(): 
                 return RUM.RUMCell(
@@ -94,20 +95,25 @@ class PTBModel(object):
             mcell = MultiRNNCell([rum_cell() for _ in range(config.num_layers)], state_is_tuple = True)
             self._initial_state = mcell.zero_state(batch_size, tf.float32)
             state = self._initial_state
-        
-        outputs = []
+        # outputs = []
         print('generating graph')
         with tf.variable_scope("RNN"):
-            for time_step in range(num_steps):
-                if time_step > 0: tf.get_variable_scope().reuse_variables()
-                if config.cell != "rum": 
-                    out, state = FS_cell(inputs[:, time_step, :], state)
-                else: 
-                    out, state = mcell(inputs[:, time_step, :], state)
-                outputs.append(out)
+            if config.cell != 'rum':
+                outputs, _ = tf.nn.dynamic_rnn(FS_cell, inputs, dtype=tf.float32)
+            else:
+                outputs, _ = tf.nn.dynamic_rnn(mcell, inputs, dtype=tf.float32)
 
+        #     for time_step in range(num_steps):
+        #         if time_step > 0: tf.get_variable_scope().reuse_variables()
+        #         if config.cell != "rum": 
+        #             out, state = FS_cell(inputs[:, time_step, :], state)
+        #         else: 
+        #             out, state = mcell(inputs[:, time_step, :], state)
+        #         outputs.append(out)
+        # outputs = tf.concat(axis=1, values=outputs)
+        print outputs
         print('graph generated')
-        output = tf.reshape(tf.concat(axis=1, values=outputs), [-1, F_size])
+        outputs = tf.reshape(outputs, [-1, F_size])
 
         # Output layer and cross entropy loss
 
@@ -115,7 +121,7 @@ class PTBModel(object):
         softmax_w = tf.get_variable(
             "softmax_w", [F_size, vocab_size], initializer=out_init, dtype=tf.float32)
         softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-        logits = tf.matmul(output, softmax_w) + softmax_b
+        logits = tf.matmul(outputs, softmax_w) + softmax_b
         loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
             [logits],
             [tf.reshape(input_.targets, [-1])],
