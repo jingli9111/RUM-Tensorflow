@@ -9,8 +9,8 @@ import tensorflow as tf
 import auxiliary as aux
 import reader
 import ptb_configs as configs
-import baselineModels.LNLSTM
-import baselineModels.FSRNN
+from baselineModels import LNLSTM
+from baselineModels import FSRNN
 import RUM
 
 from tensorflow.contrib.rnn import MultiRNNCell
