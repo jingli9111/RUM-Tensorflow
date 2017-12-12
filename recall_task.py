@@ -7,13 +7,14 @@ import argparse, os
 import tensorflow as tf
 import sys
 
-from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell, LSTMStateTuple
-from RUM import RUMCell, ARUMCell, ARUM2Cell
-from EUNN import EUNNCell
-from GORU import GORUCell
+from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell
 
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
+
+from RUM import RUMCell, ARUMCell 
+from baselineModels.GORU import GORUCell
+from baselineModels.EUNN import EUNNCell
 
 sigmoid = math_ops.sigmoid 
 tanh = math_ops.tanh
