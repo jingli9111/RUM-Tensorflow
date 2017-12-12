@@ -23,7 +23,7 @@ class FSRNNCell(tf.contrib.rnn.RNNCell):
     def __call__(self, inputs, state, scope='FS-RNN'):
         F_state = state[0]
         S_state = state[1]
-
+        
         with tf.variable_scope(scope):
             inputs = tf.nn.dropout(inputs, self.keep_prob)
 
@@ -45,7 +45,17 @@ class FSRNNCell(tf.contrib.rnn.RNNCell):
 
             F_output_drop = tf.nn.dropout(F_output, self.keep_prob)
             return F_output_drop, (F_state, S_state)
+    
+    @property
+    def output_size(self):
+        return self.fast_cells[0].state_size[0]
 
+    @property
+    def state_size(self):
+        F_shape = self.fast_cells[0].state_size
+        S_shape = self.slow_cell.state_size
+        
+        return (F_shape, S_shape)
 
     def zero_state(self, batch_size, dtype):
         F_state = self.fast_cells[0].zero_state(batch_size, dtype)
