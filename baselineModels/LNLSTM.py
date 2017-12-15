@@ -21,6 +21,7 @@ class LN_LSTMCell(tf.contrib.rnn.RNNCell):
           use_recurrent_dropout: float, Whether to use Recurrent Dropout (default False)
           dropout_keep_prob: float, dropout keep probability (default 0.90)
         """
+        super(LN_LSTMCell, self).__init__()
         self.num_units = num_units
         self.f_bias = f_bias
 
@@ -30,8 +31,8 @@ class LN_LSTMCell(tf.contrib.rnn.RNNCell):
 
         self.is_training = is_training
 
-    def __call__(self, x, state, scope=None):
-        with tf.variable_scope(scope or type(self).__name__):
+    def call(self, x, state):
+        with tf.variable_scope(type(self).__name__):
             h, c = state
 
             h_size = self.num_units
@@ -63,6 +64,14 @@ class LN_LSTMCell(tf.contrib.rnn.RNNCell):
                                            self.zoneout_keep_c, self.is_training)
 
         return new_h, (new_h, new_c)
+
+    @property
+    def state_size(self): 
+        return (self.num_units, self.num_units)
+
+    @property
+    def output_size(self): 
+        return (self.num_units, self.num_units)
 
     def zero_state(self, batch_size, dtype):
         h = tf.zeros([batch_size, self.num_units], dtype=dtype)

@@ -1,27 +1,26 @@
+
 import time
 import sys
 import os
-import random
-from datetime import datetime
 
 import tensorflow as tf
 
 import auxiliary as aux
 import reader
-import ptb_configs as configs
-from baselineModels import LNLSTM
-from baselineModels import FSRNN
+import configs
+import LNLSTM
 import RUM
+import FSRNN
 
-from tensorflow.contrib.rnn import MultiRNNCell
-
-random.seed(datetime.now())
 
 flags = tf.flags
 
 flags.DEFINE_string(
-    "model", "ptb_rum",
+    "model", "ptb_fs_rum",
     "A type of model. Check configs file to know which models are available.")
+flags.DEFINE_string(
+    "cell", "lstm",
+    "A type of cell. Check configs file to know which cells are available.")
 flags.DEFINE_string(
     "mode", "train",
     "A type of mode. Train or test.")
@@ -30,7 +29,7 @@ flags.DEFINE_string(
     "Restore? True or False?")
 flags.DEFINE_string("data_path", 'data/',
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", 'models/ptb/RUM_test/',
+flags.DEFINE_string("save_path", 'models/ptb/(2)DRUM_FS_1000_(2)700_1.0_150_128/',
                     "Model output directory.")
 FLAGS = flags.FLAGS
 
@@ -54,10 +53,9 @@ class PTBModel(object):
         batch_size = input_.batch_size
         num_steps = input_.num_steps
         emb_size = config.embed_size
-        vocab_size = config.vocab_size
         F_size = config.cell_size
-        if config.cell != "rum": 
-            S_size = config.hyper_size
+        S_size = config.hyper_size
+        vocab_size = config.vocab_size
 
         emb_init = aux.orthogonal_initializer(1.0)
         with tf.device("/cpu:0"):
@@ -65,56 +63,41 @@ class PTBModel(object):
                 "embedding", [vocab_size, emb_size], initializer=emb_init, dtype=tf.float32)
             inputs = tf.nn.embedding_lookup(embedding, input_.input_data)
 
-        if config.cell != "rum": 
+        if config.cell == "lstm" or config.cell == "rum": 
             F_cells = [LNLSTM.LN_LSTMCell(F_size, use_zoneout=True, is_training=is_training,
                                           zoneout_keep_h=config.zoneout_h, zoneout_keep_c=config.zoneout_c)
                        for _ in range(config.fast_layers)]
-        if config.cell == "fs-lstm": 
-                S_cell  = LNLSTM.LN_LSTMCell(S_size, use_zoneout=True, is_training=is_training,
-                                             zoneout_keep_h=config.zoneout_h, zoneout_keep_c=config.zoneout_c)
-        elif config.cell == "fs-rum": 
+
+        if config.cell == "lstm": 
+            S_cell  = LNLSTM.LN_LSTMCell(S_size, use_zoneout=True, is_training=is_training,
+                                         zoneout_keep_h=config.zoneout_h, zoneout_keep_c=config.zoneout_c)
+        elif config.cell == "rum": 
             S_cell  = RUM.RUMCell(
                             hidden_size = S_size,
                             T_norm = config.T_norm,
                             use_zoneout = config.use_zoneout,
                             use_layer_norm = config.use_layer_norm,
                             is_training = is_training)        
-        if config.cell != "rum": 
-            FS_cell = FSRNN.FSRNNCell(F_cells, S_cell, config.keep_prob, is_training)
-            self._initial_state = FS_cell.zero_state(batch_size, tf.float32)
-            state = self._initial_state
-            print FS_cell
-        else: 
-            def rum_cell(): 
-                return RUM.RUMCell(
-                                hidden_size = config.cell_size,
-                                T_norm = config.T_norm,
-                                use_zoneout = config.use_zoneout,
-                                use_layer_norm = config.use_layer_norm,
-                                is_training = is_training)
-            mcell = MultiRNNCell([rum_cell() for _ in range(config.num_layers)], state_is_tuple = True)
-            self._initial_state = mcell.zero_state(batch_size, tf.float32)
-            state = self._initial_state
-        # outputs = []
+        FS_cell = FSRNN.FSRNNCell(F_cells, S_cell, config.keep_prob, is_training)
+        self._initial_state = FS_cell.zero_state(batch_size, tf.float32)
+        state = self._initial_state
+
+        outputs = []
+        print('generating graph')
+        #Issue with reusing variables here. 
+        #outputs, state = tf.nn.dynamic_rnn(FS_cell, inputs, initial_state = state)
+        """
+        outputs = []
         print('generating graph')
         with tf.variable_scope("RNN"):
-            if config.cell != 'rum':
-                outputs, _ = tf.nn.dynamic_rnn(FS_cell, inputs, dtype=tf.float32)
-            else:
-                outputs, _ = tf.nn.dynamic_rnn(mcell, inputs, dtype=tf.float32)
-
-        #     for time_step in range(num_steps):
-        #         if time_step > 0: tf.get_variable_scope().reuse_variables()
-        #         if config.cell != "rum": 
-        #             out, state = FS_cell(inputs[:, time_step, :], state)
-        #         else: 
-        #             out, state = mcell(inputs[:, time_step, :], state)
-        #         outputs.append(out)
-        # outputs = tf.concat(axis=1, values=outputs)
-        print(outputs)
+            for time_step in range(num_steps):
+                if time_step > 0: tf.get_variable_scope().reuse_variables()
+                #this line above takes case of the reusing of variables 
+                out, state = FS_cell(inputs[:, time_step, :], state)
+                outputs.append(out)
+        """
         print('graph generated')
-        input()
-        outputs = tf.reshape(outputs, [-1, F_size])
+        output = tf.reshape(tf.concat(axis=1, values=outputs), [-1, F_size])
 
         # Output layer and cross entropy loss
 
@@ -122,12 +105,13 @@ class PTBModel(object):
         softmax_w = tf.get_variable(
             "softmax_w", [F_size, vocab_size], initializer=out_init, dtype=tf.float32)
         softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-        logits = tf.matmul(outputs, softmax_w) + softmax_b
+        logits = tf.matmul(output, softmax_w) + softmax_b
         loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
             [logits],
             [tf.reshape(input_.targets, [-1])],
             [tf.ones([batch_size * num_steps], dtype=tf.float32)])
         self._cost = cost = tf.reduce_sum(loss) / batch_size
+
         self._final_state = state
 
         if not is_training: return
@@ -211,9 +195,19 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
     return costs / (iters * 0.69314718056)
 
+
+
+
 def main(_):
     if not FLAGS.data_path:
         raise ValueError("Must set --data_path to PTB data directory")
+    if not os.path.exists(os.path.dirname(FLAGS.save_path)):
+        try:
+            os.makedirs(os.path.dirname(FLAGS.save_path))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+
 
     config       = configs.get_config(FLAGS.model)
     eval_config  = configs.get_config(FLAGS.model)
@@ -221,16 +215,10 @@ def main(_):
     print(config.batch_size)
     eval_config.batch_size = 1
     valid_config.batch_size = 20
-   
+
     raw_data = reader.ptb_raw_data(FLAGS.data_path + config.dataset + '/')
     train_data, valid_data, test_data, _ = raw_data
 
-    if not os.path.exists(os.path.dirname(FLAGS.save_path)):
-        try:
-            os.makedirs(os.path.dirname(FLAGS.save_path))
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                raise
 
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-config.init_scale,
@@ -246,15 +234,19 @@ def main(_):
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
 
+        #issue with shapes here ... 
+        """
         with tf.name_scope("Test"):
             test_input = PTBInput(config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
+        """
 
         saver = tf.train.Saver(tf.trainable_variables())
-
-        with tf.Session() as session:
+        configz = tf.ConfigProto()
+        configz.gpu_options.allow_growth = True 
+        with tf.Session(config = configz) as session:
             session.run(tf.global_variables_initializer())
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
@@ -263,13 +255,12 @@ def main(_):
             if FLAGS.mode == "train":
                 previous_val = 9999
                 if FLAGS.restore == "True":
-                    f = open(FLAGS.save_path + 'train-and-valid.txt', 'r')
+                    f.open(FLAGS.save_path + 'train-and-valid.txt', 'r')
                     x = f.readlines()[2]
                     x = x.rstrip()
                     x = x.split(" ")
-                    previous_val = float(x[1])
+                    previous_val = int(x[1])
                     print("previous validation is %f\n" % (previous_val))
-                    f.close()
                 for i in range(config.max_max_epoch):
                     lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                     m.assign_lr(session, config.learning_rate * lr_decay)
@@ -301,7 +292,7 @@ def main(_):
             saver.restore(session, FLAGS.save_path + 'model.ckpt')
             test_perplexity = run_epoch(session, mtest)
             print("Test Perplexity: %.4f" % test_perplexity)
-            f = open(FLAGS.save_path + 'test_2.txt', 'w')
+            f = open(FLAGS.save_path + 'test.txt', 'w')
             f.write("Test %f\n" % (test_perplexity))
             f.close()
             sys.stdout.flush()

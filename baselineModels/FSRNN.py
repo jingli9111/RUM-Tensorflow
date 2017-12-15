@@ -12,7 +12,7 @@ class FSRNNCell(tf.contrib.rnn.RNNCell):
                 recurrent dropout should be implemented in the RNN cells.
               training: If False, no dropout is applied.
         """
-
+        super(FSRNNCell, self).__init__()
         self.fast_layers = len(fast_cells)
         assert self.fast_layers >= 2, 'At least two fast layers are needed'
         self.fast_cells = fast_cells
@@ -20,11 +20,11 @@ class FSRNNCell(tf.contrib.rnn.RNNCell):
         self.keep_prob = keep_prob
         if not training: self.keep_prob = 1.0
 
-    def __call__(self, inputs, state, scope='FS-RNN'):
+    def call(self, inputs, state):
         F_state = state[0]
         S_state = state[1]
-        
-        with tf.variable_scope(scope):
+
+        with tf.variable_scope(type(self).__name__):
             inputs = tf.nn.dropout(inputs, self.keep_prob)
 
             with tf.variable_scope('Fast_0'):
