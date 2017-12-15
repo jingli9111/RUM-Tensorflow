@@ -84,8 +84,9 @@ class PTBModel(object):
 
         outputs = []
         print('generating graph')
-        #Issue with reusing variables here. 
-        #outputs, state = tf.nn.dynamic_rnn(FS_cell, inputs, initial_state = state)
+        #Issue with reusing variables here.
+        with tf.variable_scope("RNN"): 
+            outputs, state = tf.nn.dynamic_rnn(FS_cell, inputs, initial_state = state)
         """
         outputs = []
         print('generating graph')
