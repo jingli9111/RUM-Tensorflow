@@ -10,6 +10,7 @@ from tempfile import TemporaryFile
 from tensorflow.contrib.rnn import LSTMCell, BasicLSTMCell, BasicRNNCell, GRUCell, LSTMStateTuple, MultiRNNCell
 import auxiliary as aux
 from RUM import RUMCell
+from baselineModels.EUNN import EUNNCell
 from baselineModels.FSRNN import FSRNNCell
 from baselineModels.LNLSTM import LN_LSTMCell
 from ptb_iterator import *
@@ -62,6 +63,7 @@ def main(
 	decay, 
 	nb_v, 
 	norm,
+	capacity,
 	n_layers,
 	clip_threshold,
 	keep_prob,
@@ -141,6 +143,10 @@ def main(
 		def lstm_cell():
 			return LSTMCell(n_hidden, initializer = tf.orthogonal_initializer())
 		mcell = MultiRNNCell([lstm_cell() for _ in range(n_layers)], state_is_tuple = True)
+	if model == "EUNN":
+		def eunn_cell(i):
+			return EUNNCell(n_hidden, capacity=capacity, comp=False, name=i)
+		mcell = MultiRNNCell([eunn_cell(str(i)) for i in range(n_layers)], state_is_tuple = True)
 	if model == "GRU": 
 		def gru_cell(): 
 			return GRUCell(n_hidden, kernel_initializer = tf.orthogonal_initializer())
@@ -402,6 +408,7 @@ if __name__=="__main__":
 			  	'decay': dict['decay'],
 				'nb_v': dict['nb_v'], 
 				'norm': dict['norm'],
+				'capacity': dict['capacity'],
 				'n_layers': dict['n_layers'],
 				'clip_threshold': dict['clip_threshold'],
 				'keep_prob': dict['keep_prob'],

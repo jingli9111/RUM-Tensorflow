@@ -13,7 +13,7 @@ from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops.rnn_cell_impl import RNNCell
 from modrelu import modrelu
 
-def _eunn_param(hidden_size, capacity=2, fft=False, comp=True):
+def _eunn_param(hidden_size, capacity=2, fft=False, comp=True, name=None):
     """
     Create parameters and do the initial preparations
     """
@@ -30,12 +30,12 @@ def _eunn_param(hidden_size, capacity=2, fft=False, comp=True):
             extra_size = max(0, (hidden_size % (2 ** size)) - (2 ** (size - 1)))
             varsize += normal_size + extra_size
 
-        params_theta = vs.get_variable("theta_0", [varsize], initializer=theta_phi_initializer)
+        params_theta = vs.get_variable(name+"theta_0", [varsize], initializer=theta_phi_initializer)
         cos_theta = math_ops.cos(params_theta)
         sin_theta = math_ops.sin(params_theta)
 
         if comp:
-            params_phi = vs.get_variable("phi_0", [varsize], initializer=theta_phi_initializer)
+            params_phi = vs.get_variable(name+"phi_0", [varsize], initializer=theta_phi_initializer)
             cos_phi = math_ops.cos(params_phi)
             sin_phi = math_ops.sin(params_phi)
 
@@ -91,16 +91,16 @@ def _eunn_param(hidden_size, capacity=2, fft=False, comp=True):
         hidden_size_a = hidden_size//2
         hidden_size_b = (hidden_size-1)//2
 
-        params_theta_0 = vs.get_variable("theta_0", [capacity_a, hidden_size_a], initializer=theta_phi_initializer)
+        params_theta_0 = vs.get_variable(name+"theta_0", [capacity_a, hidden_size_a], initializer=theta_phi_initializer)
         cos_theta_0 = array_ops.reshape(math_ops.cos(params_theta_0), [capacity_a, -1, 1])
         sin_theta_0 = array_ops.reshape(math_ops.sin(params_theta_0), [capacity_a, -1, 1])
 
-        params_theta_1 = vs.get_variable("theta_1", [capacity_b, hidden_size_b], initializer=theta_phi_initializer)
+        params_theta_1 = vs.get_variable(name+"theta_1", [capacity_b, hidden_size_b], initializer=theta_phi_initializer)
         cos_theta_1 = array_ops.reshape(math_ops.cos(params_theta_1), [capacity_b, -1, 1])
         sin_theta_1 = array_ops.reshape(math_ops.sin(params_theta_1), [capacity_b, -1, 1])
 
         if comp:
-            params_phi_0 = vs.get_variable("phi_0", [capacity_a, hidden_size_a], initializer=theta_phi_initializer)
+            params_phi_0 = vs.get_variable(name+"phi_0", [capacity_a, hidden_size_a], initializer=theta_phi_initializer)
             cos_phi_0 = array_ops.reshape(math_ops.cos(params_phi_0), [capacity_a, -1, 1])
             sin_phi_0 = array_ops.reshape(math_ops.sin(params_phi_0), [capacity_a, -1, 1])
 
@@ -118,7 +118,7 @@ def _eunn_param(hidden_size, capacity=2, fft=False, comp=True):
                 sin_list_0_im = array_ops.concat([sin_list_0_im, tf.zeros([capacity_a, 1])], 1)
             sin_list_0 = math_ops.complex(sin_list_0_re, sin_list_0_im)
 
-            params_phi_1 = vs.get_variable("phi_1", [capacity_b, hidden_size_b], initializer=theta_phi_initializer)
+            params_phi_1 = vs.get_variable(name+"phi_1", [capacity_b, hidden_size_b], initializer=theta_phi_initializer)
             cos_phi_1 = array_ops.reshape(math_ops.cos(params_phi_1), [capacity_b, -1, 1])
             sin_phi_1 = array_ops.reshape(math_ops.sin(params_phi_1), [capacity_b, -1, 1])
 
@@ -180,7 +180,7 @@ def _eunn_param(hidden_size, capacity=2, fft=False, comp=True):
     diag_vec = _toTensorArray(diag_vec)
     off_vec = _toTensorArray(off_vec)
     if comp:
-        omega = vs.get_variable("omega", [hidden_size], initializer=theta_phi_initializer)
+        omega = vs.get_variable(name+"omega", [hidden_size], initializer=theta_phi_initializer)
         diag = math_ops.complex(math_ops.cos(omega), math_ops.sin(omega))
     else:
         diag = None
@@ -284,15 +284,16 @@ class EUNNCell(RNNCell):
 
     """
 
-    def __init__(self, hidden_size, capacity=2, fft=False, comp=False, activation=modrelu):
+    def __init__(self, hidden_size, capacity=2, fft=False, comp=False, activation=modrelu, name=None):
         super(EUNNCell, self).__init__()
         self._hidden_size = hidden_size
         self._activation = activation
         self._capacity = capacity
         self._fft = fft
         self._comp = comp
+        self._name = name
 
-        self.diag_vec, self.off_vec, self.diag, self._capacity = _eunn_param(hidden_size, capacity, fft, comp)
+        self.diag_vec, self.off_vec, self.diag, self._capacity = _eunn_param(hidden_size, capacity, fft, comp, name)
 
 
 
