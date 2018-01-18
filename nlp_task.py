@@ -10,8 +10,8 @@ from tempfile import TemporaryFile
 from tensorflow.contrib.rnn import LSTMCell, BasicLSTMCell, BasicRNNCell, GRUCell, LSTMStateTuple, MultiRNNCell
 import auxiliary as aux
 from RUM import RUMCell
-from FSRNN import FSRNNCell
-from LNLSTM import LN_LSTMCell
+from baselineModels.FSRNN import FSRNNCell
+from baselineModels.LNLSTM import LN_LSTMCell
 from ptb_iterator import *
 import re
 
@@ -22,11 +22,11 @@ def file_data(stage,
 	          n_epochs, 
 	          vocab_to_idx):
 	if stage == 'train':
-		file_name = 'data/enwik8/train'
+		file_name = 'data/ptb/train'
 	elif stage == 'valid':
-		file_name = 'data/enwik8/valid'	
+		file_name = 'data/ptb/valid'	
 	elif stage == 'test':
-		file_name = 'data/enwik8/test'
+		file_name = 'data/ptb/test'
 	with open(file_name, 'r' ) as f:
 		raw_data = f.read()
 		print("Data length: ", len(raw_data))
@@ -134,8 +134,8 @@ def main(
 									is_training=True,
                                     zoneout_keep_h=True, 
                                     zoneout_keep_c=True)
-		def fs_rum_cell(): 
-			return FSRNNCell([ln_lstm_cell(), ln_lstm_cell()], rum_cell(), 0.65, training = True)
+		# def fs_rum_cell(): 
+		# 	return FSRNNCell([ln_lstm_cell(), ln_lstm_cell()], rum_cell(), 0.65, training = True)
 		mcell = MultiRNNCell([fs_rum_cell() for _ in range(n_layers)], state_is_tuple = True)
 	if model == "LSTM":
 		def lstm_cell():

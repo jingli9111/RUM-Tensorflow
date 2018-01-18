@@ -95,25 +95,27 @@ class PTBModel(object):
             mcell = MultiRNNCell([rum_cell() for _ in range(config.num_layers)], state_is_tuple = True)
             self._initial_state = mcell.zero_state(batch_size, tf.float32)
             state = self._initial_state
-        # outputs = []
         print('generating graph')
-        with tf.variable_scope("RNN"):
-            if config.cell != 'rum':
-                outputs, _ = tf.nn.dynamic_rnn(FS_cell, inputs, dtype=tf.float32)
-            else:
-                outputs, _ = tf.nn.dynamic_rnn(mcell, inputs, dtype=tf.float32)
 
-        #     for time_step in range(num_steps):
-        #         if time_step > 0: tf.get_variable_scope().reuse_variables()
-        #         if config.cell != "rum": 
-        #             out, state = FS_cell(inputs[:, time_step, :], state)
-        #         else: 
-        #             out, state = mcell(inputs[:, time_step, :], state)
-        #         outputs.append(out)
-        # outputs = tf.concat(axis=1, values=outputs)
-        print(outputs)
+        ## Dynamic RNN ##        
+        # with tf.variable_scope("RNN"):
+        # if config.cell != 'rum':
+        #     outputs, _ = tf.nn.dynamic_rnn(F_cells[0], inputs, dtype=tf.float32)
+        # else:
+        #     outputs, _ = tf.nn.dynamic_rnn(mcell, inputs, dtype=tf.float32)
+
+
+        ## For Loop RNN ##
+        outputs = []
+        for time_step in range(num_steps):
+            if time_step > 0: tf.get_variable_scope().reuse_variables()
+            if config.cell != "rum": 
+                out, state = FS_cell(inputs[:, time_step, :], state)
+            else: 
+                out, state = mcell(inputs[:, time_step, :], state)
+            outputs.append(out)
+        outputs = tf.concat(axis=1, values=outputs)
         print('graph generated')
-        input()
         outputs = tf.reshape(outputs, [-1, F_size])
 
         # Output layer and cross entropy loss
@@ -219,7 +221,7 @@ def main(_):
     eval_config  = configs.get_config(FLAGS.model)
     valid_config = configs.get_config(FLAGS.model)
     print(config.batch_size)
-    eval_config.batch_size = 1
+    eval_config.batch_size = 20
     valid_config.batch_size = 20
    
     raw_data = reader.ptb_raw_data(FLAGS.data_path + config.dataset + '/')
