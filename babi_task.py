@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import argparse, os
 import tensorflow as tf
-import sys
+import sys, tarfile, re
 
 from tensorflow.contrib.rnn import BasicLSTMCell, BasicRNNCell, GRUCell
 
@@ -212,6 +212,8 @@ def main(model, qid, n_iter, n_batch, n_hidden, n_embed, capacity, comp, FFT, le
     encoded_question = tf.nn.embedding_lookup(embed, question)
     merged = tf.concat([encoded_sentence, encoded_question], axis=1)
     print(encoded_sentence, encoded_question, merged)
+
+    input_data = merged
 
     if model == "LSTM":
         cell = BasicLSTMCell(n_hidden, state_is_tuple=True, forget_bias=1)
