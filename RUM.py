@@ -2,6 +2,9 @@
 import tensorflow as tf
 import numpy as np 
 import auxiliary as aux
+from termcolor import colored
+
+from tensorflow.python.util.tf_export import tf_export
 
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import init_ops
@@ -10,7 +13,7 @@ from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import variable_scope as vs
 
 from tensorflow.python.ops.rnn_cell_impl import RNNCell
-from tensorflow.python.ops.rnn_cell_impl import _linear
+from tensorflow.contrib.layers import fully_connected
 
 sigmoid = math_ops.sigmoid 
 tanh = math_ops.tanh
@@ -115,7 +118,6 @@ def rotate(v1, v2, v):
 							[size_batch, hidden_size]
 						))
 
-
 class RUMCell(RNNCell):
 	"""Rotational Unit of Memory
 
@@ -175,8 +177,11 @@ class RUMCell(RNNCell):
 			if self._bias_initializer is None:
 				dtype = [a.dtype for a in [inputs, state]][0]
 				bias_ones = init_ops.constant_initializer(1.0, dtype = dtype)
-			value = _linear([inputs, state], 2 * self._hidden_size, True, bias_ones,
-						aux.rum_ortho_initializer())
+			value = fully_connected(inputs=tf.concat([inputs, state],axis=1), 
+									num_outputs=2*self._hidden_size, 
+									activation_fn=None,
+									biases_initializer=bias_ones,
+									weights_initializer=aux.rum_ortho_initializer())
 			r, u = array_ops.split(value = value, num_or_size_splits = 2, axis = 1)
 			u = sigmoid(u)
 			if self._use_layer_norm: 
@@ -184,8 +189,11 @@ class RUMCell(RNNCell):
 				concat = aux.layer_norm_all(concat, 2, self._hidden_size, "LN_r_u")
 				r, u = tf.split(concat, 2, 1)
 		with vs.variable_scope("candidate"):
-			x_emb = _linear(inputs, self._hidden_size, True, self._bias_initializer, 
-							self._kernel_initializer)
+			x_emb = fully_connected(inputs=inputs,
+									num_outputs=self._hidden_size,
+									activation_fn=None,
+									biases_initializer=self._bias_initializer,
+									weights_initializer=self._kernel_initializer)
 			state_new = rotate(x_emb, r, state)
 			if self._use_layer_norm: 
 				c = self._activation(aux.layer_norm(x_emb + state_new, "LN_c"))
@@ -269,8 +277,11 @@ class ARUMCell(RNNCell):
 			if self._bias_initializer is None:
 				dtype = [a.dtype for a in [inputs, state]][0]
 				bias_ones = init_ops.constant_initializer(1.0, dtype = dtype)
-			value = _linear([inputs, state], 2 * self._hidden_size, True, bias_ones,
-						aux.rum_ortho_initializer())
+			value = fully_connected(inputs=tf.concat([inputs, state],axis=1), 
+									num_outputs=2*self._hidden_size, 
+									activation_fn=None,
+									biases_initializer=bias_ones,
+									weights_initializer=aux.rum_ortho_initializer())
 			r, u = array_ops.split(value = value, num_or_size_splits = 2, axis = 1)
 			u = sigmoid(u)
 			if self._use_layer_norm: 
@@ -278,8 +289,11 @@ class ARUMCell(RNNCell):
 				concat = aux.layer_norm_all(concat, 2, self._hidden_size, "LN_r_u")
 				r, u = tf.split(concat, 2, 1)
 		with vs.variable_scope("candidate"):
-			x_emb = _linear(inputs, self._hidden_size, True, self._bias_initializer, 
-							self._kernel_initializer)
+			x_emb = fully_connected(inputs=inputs,
+									num_outputs=self._hidden_size,
+									activation_fn=None,
+									biases_initializer=self._bias_initializer,
+									weights_initializer=self._kernel_initializer)
 			tmp_rotation = rotation_operator(x_emb, r, self._hidden_size)
 			Rt = tf.matmul(assoc_mem, tmp_rotation)
 
