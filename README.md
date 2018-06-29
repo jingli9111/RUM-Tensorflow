@@ -1,6 +1,6 @@
 # Rotational Unit of Memory (RUM) - Tensorflow
 
-Here we present the implementation of a novel RNN model--RUM--which outperforms significantly the current frontier of models in a variety of sequential tasks. The Rotational Unit combines the memorization advantage of unitary/orthogonal matrices with the dynamic structure of associative memory.
+Here we present the implementation of a novel RNN model--RUM--which outperforms well-established RNN models in a variety of sequential tasks. The Rotational Unit combines the memorization advantage of unitary/orthogonal matrices with the dynamic structure of associative memory.
     
 If you find this work useful, please cite [arXiv:1710.09537] (https://arxiv.org/pdf/1710.09537.pdf). The model and tasks are described in the same paper. 
 
@@ -16,5 +16,7 @@ Please inspect the arguments in the code in order to test your own hyper-paramet
 Please inspect the arguments in the code in order to test your own hyper-parameters. For example, if you want to run `lambda = 0 RUM` without time normalization on subtask number 5, enter `python babi_task.py RUM 5`. 
 ## Penn Treebank Character-level Language modeling Task: `ptb_task.py`
 Please inspect the arguments in the code and the models in `ptb_configs.py` in order to conduct your own grid search. For example, if you want to run the model `FS-RUM-2`, which achieves 1.189 BPC, enter `python ptb_task.py --model ptb_fs_rum`. The code is adapted from [1], from where we also use a layer-normalized LSTM `LNLSTM.py` and the FSRNN higher-level model `FSRNN.py`.
-
+## License
+This project is licensed under the terms of the MIT license.
+## References 
 [1] https://github.com/amujika/Fast-Slow-LSTM
