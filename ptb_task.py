@@ -10,8 +10,8 @@ import auxiliary as aux
 import reader
 import ptb_configs as configs
 from baselineModels import LNLSTM
-from baselineModels import FSRNN
-import RUM, GORU
+from baselineModels import FSRNN, GORU
+import RUM
 
 from tensorflow.contrib.rnn import MultiRNNCell
 
@@ -80,7 +80,8 @@ class PTBModel(object):
                             use_layer_norm = config.use_layer_norm,
                             is_training = is_training)        
         elif config.cell == "fs-goru": 
-            S_cell  = GORU.GORUCell(hidden_size = S_size)    
+            with tf.variable_scope("goru"):
+                S_cell  = GORU.GORUCell(hidden_size = S_size)    
         if config.cell != "rum": 
             FS_cell = FSRNN.FSRNNCell(F_cells, S_cell, config.keep_prob, is_training)
             self._initial_state = FS_cell.zero_state(batch_size, tf.float32)
