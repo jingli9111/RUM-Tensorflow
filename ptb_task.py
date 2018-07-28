@@ -10,8 +10,8 @@ import auxiliary as aux
 import reader
 import ptb_configs as configs
 from baselineModels import LNLSTM
-from baselineModels import FSRNN, GORU
-import RUM
+from baselineModels import FSRNN
+import RUM, GORU
 
 from tensorflow.contrib.rnn import MultiRNNCell
 
