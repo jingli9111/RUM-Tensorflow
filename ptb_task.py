@@ -10,8 +10,8 @@ import auxiliary as aux
 import reader
 import ptb_configs as configs
 from baselineModels import LNLSTM
-from baselineModels import FSRNN, GORU
-import RUM
+from baselineModels import FSRNN
+import RUM, GORU
 
 from tensorflow.contrib.rnn import MultiRNNCell
 
@@ -124,16 +124,17 @@ class PTBModel(object):
         # Output layer and cross entropy loss
 
         out_init = aux.orthogonal_initializer(1.0)
-        softmax_w = tf.get_variable(
-            "softmax_w", [F_size, vocab_size], initializer=out_init, dtype=tf.float32)
-        softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-        logits = tf.matmul(outputs, softmax_w) + softmax_b
-        loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
-            [logits],
-            [tf.reshape(input_.targets, [-1])],
-            [tf.ones([batch_size * num_steps], dtype=tf.float32)])
-        self._cost = cost = tf.reduce_sum(loss) / batch_size
-        self._final_state = state
+        with tf.variable_scope("softmax"):
+            softmax_w = tf.get_variable(
+                "softmax_w", [F_size, vocab_size], initializer=out_init, dtype=tf.float32)
+            softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
+            logits = tf.matmul(outputs, softmax_w) + softmax_b
+            loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
+                [logits],
+                [tf.reshape(input_.targets, [-1])],
+                [tf.ones([batch_size * num_steps], dtype=tf.float32)])
+            self._cost = cost = tf.reduce_sum(loss) / batch_size
+            self._final_state = state
 
         if not is_training: return
 

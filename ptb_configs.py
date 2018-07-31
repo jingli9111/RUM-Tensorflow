@@ -71,7 +71,7 @@ class ptb_fs_goru_config(object):
     num_layers = 2
     num_steps = 150
     cell_size = 700
-    hyper_size = 1000
+    hyper_size = 200
     embed_size = 128
     max_epoch = 200
     max_max_epoch = max_epoch
